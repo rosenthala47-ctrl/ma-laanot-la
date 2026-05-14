@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#0f0a1e" />
+<title>מה לענות לה? 💬</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg-deep: #0f0a1e;
+  --bg-card: #1a1230;
+  --bg-card-hover: #251a40;
+  --accent-pink: #ff2e93;
+  --accent-purple: #9d4eff;
+  --accent-cyan: #00e5ff;
+  --accent-yellow: #ffd93d;
+  --text-primary: #ffffff;
+  --text-secondary: #b8a8d9;
+  --text-muted: #6b5b8e;
+  --border: rgba(157, 78, 255, 0.2);
+  --border-strong: rgba(157, 78, 255, 0.4);
+  --gradient-main: linear-gradient(135deg, #ff2e93 0%, #9d4eff 50%, #00e5ff 100%);
+  --danger: #ff4757;
+}
+
+html, body { overscroll-behavior: none; }
+
+body {
+  font-family: 'Heebo', sans-serif;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  position: relative;
+  line-height: 1.5;
+}
+
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  z-index: 0;
+  pointer-events: none;
+}
+
+body::before {
+  width: 400px; height: 400px;
+  background: var(--accent-pink);
+  top: -100px; right: -100px;
+  animation: float1 12s ease-in-out infinite;
+}
+
+body::after {
+  width: 350px; height: 350px;
+  background: var(--accent-purple);
+  bottom: -100px; left: -100px;
+  animation: float2 15s ease-in-out infinite;
+}
+
+@keyframes float1 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-50px,80px) scale(1.1);} }
+@keyframes float2 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(60px,-50px) scale(1.15);} }
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 520px; margin: 0 auto;
+  padding: 24px 20px 100px;
+  min-height: 100vh;
+}
+
+/* App header (when logged in) */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; padding-top: 8px;
+}
+
+.logo {
+  font-size: 22px; font-weight: 900; letter-spacing: -0.5px;
+  background: var(--gradient-main);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.user-menu-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.user-menu-btn:active { transform: scale(0.94); }
+
+/* Auth screen */
+.auth-screen {
+  text-align: center;
+  padding-top: 40px;
+}
+
+.auth-emoji {
+  font-size: 48px; margin-bottom: 12px;
+  letter-spacing: 6px;
+  animation: bounce 3s ease-in-out infinite;
+}
+
+@keyframes bounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+
+.auth-title {
+  font-size: 36px; font-weight: 900; letter-spacing: -1px;
+  background: var(--gradient-main);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px; line-height: 1.1;
+}
+
+.auth-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 32px;
+}
+
+/* Card */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 22px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.card-title {
+  font-size: 16px; font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.label {
+  display: block; font-size: 13px; font-weight: 700;
+  color: var(--text-secondary); margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+/* Inputs */
+.input-field {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: var(--text-primary);
+  font-family: 'Heebo', sans-serif;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  direction: rtl;
+}
+
+.input-field::placeholder { color: var(--text-muted); }
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent-pink);
+  box-shadow: 0 0 0 4px rgba(255,46,147,0.15);
+}
+
+.form-group { margin-bottom: 14px; }
+.form-group:last-child { margin-bottom: 0; }
+
+textarea.input-field {
+  min-height: 90px; resize: vertical;
+}
+
+textarea#message { min-height: 120px; }
+
+select.input-field {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23b8a8d9' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: left 16px center;
+  padding-left: 40px;
+}
+
+/* Buttons */
+.btn {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 16px;
+  font-family: 'Heebo', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--gradient-main);
+  color: white;
+  font-weight: 800;
+  font-size: 17px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(255,46,147,0.35);
+}
+
+.btn-secondary {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border);
+}
+
+.btn-secondary:hover { border-color: var(--border-strong); }
+
+.btn-text {
+  background: transparent;
+  color: var(--accent-purple);
+  border: none;
+  font-weight: 600;
+  padding: 12px;
+  width: auto;
+  display: inline;
+}
+
+.btn-danger {
+  background: rgba(255, 71, 87, 0.1);
+  color: var(--danger);
+  border: 1.5px solid rgba(255, 71, 87, 0.3);
+}
+
+.btn-row {
+  display: flex; gap: 10px;
+}
+
+.btn-row .btn { flex: 1; }
+
+/* Tabs */
+.tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--bg-deep);
+  border-radius: 14px; padding: 4px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+}
+
+.tab {
+  background: transparent; border: none;
+  padding: 11px 8px; color: var(--text-muted);
+  font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; border-radius: 10px;
+  transition: all 0.2s ease;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+
+.tab.active {
+  background: var(--gradient-main); color: white;
+  box-shadow: 0 4px 12px rgba(255,46,147,0.3);
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Upload */
+.upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 16px; padding: 28px 16px;
+  text-align: center; cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--bg-deep);
+  position: relative;
+}
+
+.upload-area:hover, .upload-area.dragover {
+  border-color: var(--accent-pink);
+  background: rgba(255,46,147,0.05);
+}
+
+.upload-icon { font-size: 40px; margin-bottom: 8px; }
+.upload-text { color: var(--text-primary); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.upload-hint { color: var(--text-muted); font-size: 12px; }
+
+.upload-area input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+
+.preview-wrapper {
+  position: relative; border-radius: 16px; overflow: hidden;
+  background: var(--bg-deep); border: 1.5px solid var(--border);
+}
+
+.preview-wrapper img {
+  width: 100%; height: auto; display: block;
+  max-height: 400px; object-fit: contain;
+}
+
+.remove-image-btn {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(0,0,0,0.7); border: none;
+  border-radius: 50%; width: 32px; height: 32px;
+  color: white; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.paste-hint {
+  margin-top: 10px; text-align: center;
+  color: var(--text-muted); font-size: 12px;
+}
+
+.paste-hint kbd {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 6px;
+  font-family: monospace; font-size: 11px;
+}
+
+/* Style chips */
+.styles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+.style-chip {
+  background: var(--bg-deep);
+  border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 14px 8px;
+  color: var(--text-secondary);
+  font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s ease;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+
+.style-chip:active { transform: scale(0.96); }
+.style-chip .emoji { font-size: 22px; }
+
+.style-chip.active {
+  background: var(--gradient-main);
+  border-color: transparent;
+  color: white; font-weight: 700;
+  box-shadow: 0 4px 16px rgba(255,46,147,0.4);
+}
+
+/* Crush selector chip */
+.crush-selector {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-deep);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 14px;
+}
+
+.crush-selector:hover { border-color: var(--border-strong); }
+
+.crush-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--gradient-main);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; color: white;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.crush-info { flex: 1; min-width: 0; }
+.crush-name { font-weight: 700; font-size: 14px; }
+.crush-meta { font-size: 12px; color: var(--text-muted); }
+
+.crush-arrow {
+  color: var(--text-muted); font-size: 18px;
+}
+
+/* Results */
+.results { margin-top: 24px; }
+
+.results-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding: 0 4px;
+  flex-wrap: wrap; gap: 8px;
+}
+
+.results-title { font-size: 18px; font-weight: 700; }
+
+.results-count {
+  font-size: 12px; color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 4px 10px; border-radius: 20px;
+}
+
+.answer-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 18px;
+  margin-bottom: 12px; position: relative;
+  opacity: 0; transform: translateY(20px);
+  animation: slideIn 0.4s ease forwards;
+}
+
+.answer-card:nth-child(1) { animation-delay: 0.05s; }
+.answer-card:nth-child(2) { animation-delay: 0.15s; }
+.answer-card:nth-child(3) { animation-delay: 0.25s; }
+
+@keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
+
+.answer-number {
+  position: absolute; top: -10px; right: 18px;
+  background: var(--gradient-main); color: white;
+  font-size: 12px; font-weight: 800;
+  padding: 4px 12px; border-radius: 20px;
+}
+
+.answer-text {
+  font-size: 16px; line-height: 1.6;
+  color: var(--text-primary);
+  margin-bottom: 14px; margin-top: 6px;
+  word-wrap: break-word; white-space: pre-wrap;
+}
+
+.copy-btn {
+  background: var(--bg-deep);
+  border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 10px 16px;
+  color: var(--text-secondary);
+  font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s ease;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+
+.copy-btn:active { transform: scale(0.96); }
+
+.copy-btn.copied {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  color: var(--bg-deep);
+}
+
+/* Loading */
+.loading { display: none; text-align: center; padding: 32px 0; }
+.loading.active { display: block; }
+
+.loading-dots { display: inline-flex; gap: 8px; }
+
+.loading-dots span {
+  width: 12px; height: 12px;
+  background: var(--accent-pink);
+  border-radius: 50%;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) { background: var(--accent-purple); animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { background: var(--accent-cyan); animation-delay: 0.4s; }
+
+@keyframes pulse {
+  0%,100% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.loading-text { margin-top: 16px; color: var(--text-secondary); font-size: 14px; }
+
+/* Toasts and messages */
+.error-box, .success-box {
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  margin-bottom: 14px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+
+.error-box {
+  background: rgba(255,71,87,0.1);
+  border: 1px solid rgba(255,71,87,0.3);
+  color: #ff8a93;
+}
+
+.success-box {
+  background: rgba(0,229,255,0.08);
+  border: 1px solid rgba(0,229,255,0.3);
+  color: #7df1ff;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  display: none;
+  align-items: flex-end;
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 8px 20px 24px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-handle {
+  width: 40px; height: 4px;
+  background: var(--text-muted);
+  border-radius: 2px;
+  margin: 8px auto 16px;
+  opacity: 0.5;
+}
+
+.modal-title {
+  font-size: 20px; font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 13px; color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.modal-close {
+  position: absolute; top: 18px; left: 18px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 32px; height: 32px;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Crush list */
+.crush-list-item {
+  background: var(--bg-deep);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.crush-list-item:hover { border-color: var(--border-strong); }
+
+.crush-list-item.selected {
+  border-color: var(--accent-pink);
+  background: rgba(255,46,147,0.05);
+}
+
+.crush-list-item .crush-info { flex: 1; }
+
+.crush-list-actions {
+  display: flex; gap: 6px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: 34px; height: 34px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.icon-btn:active { transform: scale(0.9); }
+.icon-btn.danger { color: var(--danger); border-color: rgba(255,71,87,0.3); }
+
+.empty-list {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-muted);
+}
+
+.empty-list-emoji {
+  font-size: 40px; margin-bottom: 12px;
+}
+
+/* Footer */
+.footer {
+  text-align: center; margin-top: 40px;
+  color: var(--text-muted); font-size: 12px;
+}
+
+/* Auth toggle */
+.auth-toggle {
+  text-align: center;
+  margin-top: 16px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.auth-toggle a {
+  color: var(--accent-pink);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+@media (max-width: 380px) {
+  .auth-title { font-size: 30px; }
+  .styles-grid { grid-template-columns: repeat(2, 1fr); }
+  .style-chip { font-size: 13px; }
+}
+
+</style>
+</head>
+<body>
+<script>
+const CONFIG = {
+  SUPABASE_URL: 'https://sdoglatrwspjivkztndx.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkb2dsYXRyd3Nwaml2a3p0bmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NzU2NDcsImV4cCI6MjA5MzA1MTY0N30.05KeG_UegNd6K4qPIdiJDJYSgQzQKWJhCxSRRPghEjk'
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ===========================================================
+// מה לענות לה? - app.js
+// ===========================================================
+
+// ----- Config check -----
+// Config is defined inline
+
+// ----- Supabase client -----
+const { createClient } = supabase;
+const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+// ----- State -----
+const state = {
+  user: null,
+  profile: null,
+  crushes: [],
+  selectedCrushId: null,
+  selectedStyle: 'funny',
+  currentMode: 'text',
+  imageBase64: null,
+  imageMediaType: null,
+  authMode: 'login', // 'login' | 'signup'
+};
+
+// ----- DOM helpers -----
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+
+function calcAge(birthDate) {
+  if (!birthDate) return null;
+  const bd = new Date(birthDate);
+  if (isNaN(bd.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - bd.getFullYear();
+  const m = now.getMonth() - bd.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < bd.getDate())) age--;
+  return age;
+}
+
+function showToast(container, msg, type = 'error') {
+  container = container || $('#mainArea') || document.body;
+  $$('.error-box, .success-box').forEach(b => b.remove());
+  const box = document.createElement('div');
+  box.className = type === 'error' ? 'error-box' : 'success-box';
+  box.innerHTML = `<span>${type === 'error' ? '⚠️' : '✓'}</span><span>${escapeHtml(msg)}</span>`;
+  container.prepend(box);
+  setTimeout(() => box.remove(), 5000);
+}
+
+// ===========================================================
+// AUTH
+// ===========================================================
+
+async function signUp(email, password) {
+  const { data, error } = await sb.auth.signUp({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+async function signIn(email, password) {
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  state.user = null;
+  state.profile = null;
+  state.crushes = [];
+  render();
+}
+
+// ===========================================================
+// DATA
+// ===========================================================
+
+async function loadProfile() {
+  if (!state.user) return null;
+  const { data, error } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', state.user.id)
+    .maybeSingle();
+  if (error) {
+    console.error('Profile load error:', error);
+    return null;
+  }
+  state.profile = data;
+  return data;
+}
+
+async function saveProfile(updates) {
+  if (!state.user) throw new Error('Not logged in');
+  const { data, error } = await sb
+    .from('profiles')
+    .upsert({ id: state.user.id, ...updates }, { onConflict: 'id' })
+    .select()
+    .single();
+  if (error) throw error;
+  state.profile = data;
+  return data;
+}
+
+async function loadCrushes() {
+  if (!state.user) return [];
+  const { data, error } = await sb
+    .from('crushes')
+    .select('*')
+    .eq('user_id', state.user.id)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Crushes load error:', error);
+    return [];
+  }
+  state.crushes = data || [];
+  return state.crushes;
+}
+
+async function saveCrush(crush) {
+  if (!state.user) throw new Error('Not logged in');
+  const payload = { ...crush, user_id: state.user.id };
+  let result;
+  if (crush.id) {
+    const { data, error } = await sb
+      .from('crushes')
+      .update(payload)
+      .eq('id', crush.id)
+      .select()
+      .single();
+    if (error) throw error;
+    result = data;
+  } else {
+    const { data, error } = await sb
+      .from('crushes')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    result = data;
+  }
+  await loadCrushes();
+  return result;
+}
+
+async function deleteCrush(id) {
+  const { error } = await sb.from('crushes').delete().eq('id', id);
+  if (error) throw error;
+  if (state.selectedCrushId === id) state.selectedCrushId = null;
+  await loadCrushes();
+}
+
+// ===========================================================
+// AI CALL
+// ===========================================================
+
+async function generateAnswers() {
+  let payload;
+  if (state.currentMode === 'image') {
+    if (!state.imageBase64) {
+      showToast(null, 'בבקשה העלה תמונה קודם');
+      return null;
+    }
+    payload = {
+      mode: 'image',
+      style: state.selectedStyle,
+      imageBase64: state.imageBase64,
+      imageMediaType: state.imageMediaType,
+      crushId: state.selectedCrushId,
+    };
+  } else {
+    const text = $('#message')?.value.trim();
+    if (!text) {
+      showToast(null, 'בבקשה הדבק הודעה קודם');
+      return null;
+    }
+    payload = { mode: 'text', style: state.selectedStyle, text, crushId: state.selectedCrushId };
+  }
+
+  const url = `${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': CONFIG.SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let msg = `שגיאה (${response.status})`;
+    try {
+      const j = await response.json();
+      if (j.error) msg += `: ${j.error}`;
+    } catch {}
+    throw new Error(msg);
+  }
+
+  const data = await response.json();
+  if (!data.answers || !Array.isArray(data.answers)) throw new Error('פורמט תשובה לא תקין');
+  return data.answers;
+}
+
+// ===========================================================
+// RENDERING
+// ===========================================================
+
+function render() {
+  if (!state.user) {
+    renderAuthScreen();
+  } else if (!state.profile?.birth_date || !state.profile?.gender || !state.profile?.usage_purpose) {
+    renderOnboarding();
+  } else {
+    renderMainApp();
+  }
+}
+
+// ----- Auth screen -----
+function renderAuthScreen() {
+  const isLogin = state.authMode === 'login';
+  document.body.innerHTML = `
+    <div class="container">
+      <div class="auth-screen">
+        <div class="auth-emoji">💬 ✨ 💭</div>
+        <h1 class="auth-title">מה לענות לה?</h1>
+        <p class="auth-subtitle">תשובות חכמות ומותאמות אישית להודעות צ'אט</p>
+
+        <div class="card">
+          <div id="authMessages"></div>
+          <div class="form-group">
+            <label class="label">אימייל</label>
+            <input type="email" id="authEmail" class="input-field" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          <div class="form-group">
+            <label class="label">סיסמה</label>
+            <input type="password" id="authPassword" class="input-field" placeholder="לפחות 6 תווים" autocomplete="${isLogin ? 'current-password' : 'new-password'}" />
+          </div>
+          <button class="btn btn-primary" id="authSubmit">
+            ${isLogin ? '🔓 התחבר' : '✨ הירשם'}
+          </button>
+          <div class="auth-toggle">
+            ${isLogin ? 'אין לך חשבון?' : 'כבר יש לך חשבון?'}
+            <a id="toggleAuthMode">${isLogin ? 'הירשם עכשיו' : 'התחבר'}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  $('#toggleAuthMode').addEventListener('click', () => {
+    state.authMode = isLogin ? 'signup' : 'login';
+    render();
+  });
+
+  $('#authSubmit').addEventListener('click', async () => {
+    const email = $('#authEmail').value.trim();
+    const password = $('#authPassword').value;
+    if (!email || !password) {
+      showToast($('#authMessages'), 'מלא את כל השדות');
+      return;
+    }
+    if (password.length < 6) {
+      showToast($('#authMessages'), 'הסיסמה חייבת להיות לפחות 6 תווים');
+      return;
+    }
+    const btn = $('#authSubmit');
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+      if (isLogin) {
+        await signIn(email, password);
+        const { data: { user } } = await sb.auth.getUser();
+        state.user = user;
+        await loadProfile();
+        await loadCrushes();
+        render();
+      } else {
+        await signUp(email, password);
+        const { data: { user } } = await sb.auth.getUser();
+        if (user) {
+          state.user = user;
+          await loadProfile();
+          render();
+        } else {
+          // Email confirmation required
+          document.body.innerHTML = `
+            <div class="container">
+              <div class="auth-screen">
+                <div class="auth-emoji">📧</div>
+                <h1 class="auth-title">בדוק את המייל שלך</h1>
+                <p class="auth-subtitle">שלחנו לך לינק אימות. אחרי שתאשר, חזור והתחבר.</p>
+                <button class="btn btn-secondary" onclick="location.reload()">חזור להתחברות</button>
+              </div>
+            </div>
+          `;
+        }
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = isLogin ? '🔓 התחבר' : '✨ הירשם';
+      showToast($('#authMessages'), err.message || 'משהו השתבש');
+    }
+  });
+}
+
+// ----- Onboarding (first time setup) -----
+function renderOnboarding() {
+  document.body.innerHTML = `
+    <div class="container">
+      <div class="auth-screen">
+        <div class="auth-emoji">👋</div>
+        <h1 class="auth-title">בוא נכיר</h1>
+        <p class="auth-subtitle">כמה פרטים קצרים שיעזרו ל-AI לתת לך תשובות מדויקות</p>
+
+        <div class="card">
+          <div id="onboardMessages"></div>
+
+          <div class="form-group">
+            <label class="label">📅 תאריך לידה</label>
+            <input type="date" id="onbBirth" class="input-field" />
+          </div>
+
+          <div class="form-group">
+            <label class="label">⚧ מגדר</label>
+            <select id="onbGender" class="input-field">
+              <option value="">בחר...</option>
+              <option value="male">זכר</option>
+              <option value="female">נקבה</option>
+              <option value="other">אחר / מעדיף לא לציין</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="label">🎯 בעיקר משתמש בשביל</label>
+            <select id="onbPurpose" class="input-field">
+              <option value="">בחר...</option>
+              <option value="dating">דייטים והיכרויות</option>
+              <option value="relationship">זוגיות קיימת</option>
+              <option value="friends">חברים/חברות</option>
+              <option value="work">תקשורת עבודה</option>
+              <option value="family">משפחה</option>
+              <option value="other">כללי / אחר</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary" id="onbSubmit">המשך ✨</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Pre-fill if already partially set
+  if (state.profile) {
+    if (state.profile.birth_date) $('#onbBirth').value = state.profile.birth_date;
+    if (state.profile.gender) $('#onbGender').value = state.profile.gender;
+    if (state.profile.usage_purpose) $('#onbPurpose').value = state.profile.usage_purpose;
+  }
+
+  $('#onbSubmit').addEventListener('click', async () => {
+    const birth_date = $('#onbBirth').value;
+    const gender = $('#onbGender').value;
+    const usage_purpose = $('#onbPurpose').value;
+
+    if (!birth_date || !gender || !usage_purpose) {
+      showToast($('#onboardMessages'), 'מלא את כל השדות');
+      return;
+    }
+
+    const age = calcAge(birth_date);
+    if (age === null || age < 13 || age > 120) {
+      showToast($('#onboardMessages'), 'תאריך לידה לא תקין');
+      return;
+    }
+
+    const btn = $('#onbSubmit');
+    btn.disabled = true;
+    try {
+      await saveProfile({ birth_date, gender, usage_purpose });
+      render();
+    } catch (err) {
+      btn.disabled = false;
+      showToast($('#onboardMessages'), err.message || 'שגיאה בשמירה');
+    }
+  });
+}
+
+// ----- Main app -----
+function renderMainApp() {
+  const selectedCrush = state.crushes.find(c => c.id === state.selectedCrushId);
+
+  document.body.innerHTML = `
+    <div class="container" id="mainArea">
+      <header class="app-header">
+        <div class="logo">💬 מה לענות לה?</div>
+        <button class="user-menu-btn" id="userMenuBtn" title="תפריט">☰</button>
+      </header>
+
+      <!-- Crush selector -->
+      <div class="crush-selector" id="crushSelector">
+        <div class="crush-avatar">${selectedCrush ? escapeHtml(selectedCrush.name.charAt(0)) : '+'}</div>
+        <div class="crush-info">
+          <div class="crush-name">${selectedCrush ? escapeHtml(selectedCrush.name) : 'ללא קונטקסט אישי'}</div>
+          <div class="crush-meta">${
+            selectedCrush
+              ? escapeHtml([
+                  selectedCrush.age && `גיל ${selectedCrush.age}`,
+                  selectedCrush.relationship_status,
+                ].filter(Boolean).join(' · ')) || 'AI יקבל את הפרטים האישיים'
+              : 'לחץ כדי להוסיף או לבחור פרופיל'
+          }</div>
+        </div>
+        <div class="crush-arrow">‹</div>
+      </div>
+
+      <!-- Message input -->
+      <div class="card">
+        <div class="card-title">📩 ההודעה שקיבלת</div>
+
+        <div class="tabs">
+          <button class="tab active" data-tab="text"><span>✍️</span><span>טקסט</span></button>
+          <button class="tab" data-tab="image"><span>📸</span><span>צילום מסך</span></button>
+        </div>
+
+        <div class="tab-content active" id="tab-text">
+          <textarea id="message" class="input-field" placeholder="הדבק כאן את ההודעה..."></textarea>
+        </div>
+
+        <div class="tab-content" id="tab-image">
+          <div id="uploadAreaContainer">
+            <div id="uploadArea" class="upload-area">
+              <div class="upload-icon">📷</div>
+              <div class="upload-text">לחץ כאן או גרור תמונה</div>
+              <div class="upload-hint">PNG, JPG · עד 5MB</div>
+              <input type="file" id="fileInput" accept="image/*" />
+            </div>
+          </div>
+          <div class="paste-hint">
+            💡 אפשר גם להדביק תמונה עם <kbd>Ctrl</kbd>+<kbd>V</kbd>
+          </div>
+        </div>
+      </div>
+
+      <!-- Style -->
+      <div class="card">
+        <div class="card-title">🎭 סגנון תשובה</div>
+        <div class="styles-grid" id="stylesGrid">
+          <button class="style-chip ${state.selectedStyle === 'funny' ? 'active' : ''}" data-style="funny"><span class="emoji">😂</span><span>מצחיק</span></button>
+          <button class="style-chip ${state.selectedStyle === 'flirty' ? 'active' : ''}" data-style="flirty"><span class="emoji">😏</span><span>פלרטטני</span></button>
+          <button class="style-chip ${state.selectedStyle === 'calm' ? 'active' : ''}" data-style="calm"><span class="emoji">😌</span><span>רגוע</span></button>
+          <button class="style-chip ${state.selectedStyle === 'sharp' ? 'active' : ''}" data-style="sharp"><span class="emoji">⚡</span><span>חד</span></button>
+          <button class="style-chip ${state.selectedStyle === 'apologetic' ? 'active' : ''}" data-style="apologetic"><span class="emoji">🙏</span><span>מתנצל</span></button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="generateBtn">✨ תן לי תשובות</button>
+
+      <div class="loading" id="loading">
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        <div class="loading-text" id="loadingText">קורא וחושב...</div>
+      </div>
+
+      <div class="results" id="results"></div>
+
+      <div class="footer">💜 מופעל ע״י Claude AI</div>
+    </div>
+
+    <!-- Modals will be appended here -->
+    <div id="modalRoot"></div>
+  `;
+
+  attachMainAppHandlers();
+}
+
+function attachMainAppHandlers() {
+  // User menu
+  $('#userMenuBtn').addEventListener('click', () => openUserMenu());
+
+  // Crush selector
+  $('#crushSelector').addEventListener('click', () => openCrushModal());
+
+  // Tabs
+  $$('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      $$('.tab').forEach(t => t.classList.remove('active'));
+      $$('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      const tabName = tab.dataset.tab;
+      $('#tab-' + tabName).classList.add('active');
+      state.currentMode = tabName;
+    });
+  });
+
+  // Style chips
+  $('#stylesGrid').addEventListener('click', (e) => {
+    const chip = e.target.closest('.style-chip');
+    if (!chip) return;
+    $$('.style-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    state.selectedStyle = chip.dataset.style;
+  });
+
+  // Image upload
+  attachUploadHandlers();
+
+  // Generate
+  $('#generateBtn').addEventListener('click', handleGenerate);
+}
+
+// ===========================================================
+// IMAGE UPLOAD
+// ===========================================================
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast(null, 'אפשר להעלות רק קבצי תמונה');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast(null, 'התמונה גדולה מדי (מקסימום 5MB)');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    state.imageBase64 = dataUrl.split(',')[1];
+    state.imageMediaType = file.type;
+    showImagePreview(dataUrl);
+  };
+  reader.readAsDataURL(file);
+}
+
+function showImagePreview(dataUrl) {
+  $('#uploadAreaContainer').innerHTML = `
+    <div class="preview-wrapper">
+      <img src="${dataUrl}" alt="צילום מסך" />
+      <button class="remove-image-btn" id="removeImageBtn">✕</button>
+    </div>
+  `;
+  $('#removeImageBtn').addEventListener('click', resetImage);
+}
+
+function resetImage() {
+  state.imageBase64 = null;
+  state.imageMediaType = null;
+  $('#uploadAreaContainer').innerHTML = `
+    <div id="uploadArea" class="upload-area">
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">לחץ כאן או גרור תמונה</div>
+      <div class="upload-hint">PNG, JPG · עד 5MB</div>
+      <input type="file" id="fileInput" accept="image/*" />
+    </div>
+  `;
+  attachUploadHandlers();
+}
+
+function attachUploadHandlers() {
+  const area = $('#uploadArea');
+  const input = $('#fileInput');
+  if (!area || !input) return;
+
+  input.addEventListener('change', (e) => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  area.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    area.classList.add('dragover');
+  });
+  area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+  area.addEventListener('drop', (e) => {
+    e.preventDefault();
+    area.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+}
+
+// Global paste handler
+document.addEventListener('paste', (e) => {
+  if (!state.user) return;
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) {
+        const imageTab = document.querySelector('.tab[data-tab="image"]');
+        if (imageTab) imageTab.click();
+        handleFile(file);
+        e.preventDefault();
+        break;
+      }
+    }
+  }
+});
+
+// ===========================================================
+// GENERATE
+// ===========================================================
+
+async function handleGenerate() {
+  $$('.error-box').forEach(b => b.remove());
+  $('#results').innerHTML = '';
+
+  $('#loading').classList.add('active');
+  $('#loadingText').textContent = state.currentMode === 'image'
+    ? 'מנתח את הצילום מסך...' : 'קורא את ההודעה וחושב...';
+  $('#generateBtn').disabled = true;
+
+  try {
+    const answers = await generateAnswers();
+    if (answers) {
+      renderResults(answers);
+      $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } catch (err) {
+    console.error(err);
+    showToast(null, err.message || 'משהו השתבש. נסה שוב.');
+  } finally {
+    $('#loading').classList.remove('active');
+    $('#generateBtn').disabled = false;
+  }
+}
+
+function renderResults(answers) {
+  const styleLabels = {
+    funny: 'מצחיק 😂', flirty: 'פלרטטני 😏', calm: 'רגוע 😌',
+    sharp: 'חד ⚡', apologetic: 'מתנצל 🙏'
+  };
+
+  const html = `
+    <div class="results-header">
+      <span class="results-title">✨ ${answers.length} תשובות</span>
+      <span class="results-count">${styleLabels[state.selectedStyle]}</span>
+    </div>
+    ${answers.map((answer, i) => `
+      <div class="answer-card">
+        <span class="answer-number">#${i + 1}</span>
+        <p class="answer-text">${escapeHtml(answer)}</p>
+        <button class="copy-btn" data-text="${escapeHtml(answer)}">📋 העתק</button>
+      </div>
+    `).join('')}
+  `;
+  $('#results').innerHTML = html;
+
+  $$('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = btn.dataset.text;
+      try { await navigator.clipboard.writeText(text); }
+      catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      btn.classList.add('copied');
+      btn.innerHTML = '✓ הועתק!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = '📋 העתק';
+      }, 1500);
+    });
+  });
+}
+
+// ===========================================================
+// MODALS
+// ===========================================================
+
+function openModal(html) {
+  const root = $('#modalRoot');
+  root.innerHTML = `
+    <div class="modal-overlay active" id="modalOverlay">
+      <div class="modal" id="modalBox">
+        <div class="modal-handle"></div>
+        ${html}
+      </div>
+    </div>
+  `;
+  $('#modalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modalOverlay') closeModal();
+  });
+}
+
+function closeModal() {
+  $('#modalRoot').innerHTML = '';
+}
+
+// ----- User menu -----
+function openUserMenu() {
+  const myAge = calcAge(state.profile?.birth_date);
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 class="modal-title">הגדרות</h2>
+    <p class="modal-subtitle">${escapeHtml(state.user?.email || '')}</p>
+
+    <div style="background:var(--bg-deep);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">הפרופיל שלך</div>
+      <div style="font-size:14px;">
+        ${myAge ? `גיל ${myAge}` : ''}
+        ${state.profile?.gender ? ` · ${ {male:'זכר',female:'נקבה',other:'אחר'}[state.profile.gender] }` : ''}
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" id="editProfileBtn" style="margin-bottom:10px;">✏️ ערוך פרופיל</button>
+    <button class="btn btn-danger" id="signOutBtn">🚪 התנתק</button>
+  `);
+
+  $('#editProfileBtn').addEventListener('click', () => {
+    closeModal();
+    openProfileEditor();
+  });
+  $('#signOutBtn').addEventListener('click', async () => {
+    await signOut();
+    closeModal();
+  });
+}
+
+// ----- Profile editor -----
+function openProfileEditor() {
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 class="modal-title">עריכת פרופיל</h2>
+    <p class="modal-subtitle">פרטים אישיים שעוזרים ל-AI</p>
+
+    <div id="profileMessages"></div>
+
+    <div class="form-group">
+      <label class="label">📅 תאריך לידה</label>
+      <input type="date" id="pfBirth" class="input-field" value="${state.profile?.birth_date || ''}" />
+    </div>
+
+    <div class="form-group">
+      <label class="label">⚧ מגדר</label>
+      <select id="pfGender" class="input-field">
+        <option value="male" ${state.profile?.gender === 'male' ? 'selected' : ''}>זכר</option>
+        <option value="female" ${state.profile?.gender === 'female' ? 'selected' : ''}>נקבה</option>
+        <option value="other" ${state.profile?.gender === 'other' ? 'selected' : ''}>אחר / מעדיף לא לציין</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="label">🎯 מטרת השימוש</label>
+      <select id="pfPurpose" class="input-field">
+        <option value="dating" ${state.profile?.usage_purpose === 'dating' ? 'selected' : ''}>דייטים והיכרויות</option>
+        <option value="relationship" ${state.profile?.usage_purpose === 'relationship' ? 'selected' : ''}>זוגיות קיימת</option>
+        <option value="friends" ${state.profile?.usage_purpose === 'friends' ? 'selected' : ''}>חברים/חברות</option>
+        <option value="work" ${state.profile?.usage_purpose === 'work' ? 'selected' : ''}>עבודה</option>
+        <option value="family" ${state.profile?.usage_purpose === 'family' ? 'selected' : ''}>משפחה</option>
+        <option value="other" ${state.profile?.usage_purpose === 'other' ? 'selected' : ''}>אחר</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" id="pfSave">💾 שמור</button>
+  `);
+
+  $('#pfSave').addEventListener('click', async () => {
+    const birth_date = $('#pfBirth').value;
+    const gender = $('#pfGender').value;
+    const usage_purpose = $('#pfPurpose').value;
+
+    if (!birth_date || !gender || !usage_purpose) {
+      showToast($('#profileMessages'), 'מלא את כל השדות');
+      return;
+    }
+
+    const btn = $('#pfSave');
+    btn.disabled = true;
+    try {
+      await saveProfile({ birth_date, gender, usage_purpose });
+      closeModal();
+    } catch (err) {
+      btn.disabled = false;
+      showToast($('#profileMessages'), err.message || 'שגיאה בשמירה');
+    }
+  });
+}
+
+// ----- Crush modal (list + select) -----
+function openCrushModal() {
+  const list = state.crushes.map(c => `
+    <div class="crush-list-item ${state.selectedCrushId === c.id ? 'selected' : ''}" data-id="${c.id}">
+      <div class="crush-avatar">${escapeHtml(c.name.charAt(0))}</div>
+      <div class="crush-info">
+        <div class="crush-name">${escapeHtml(c.name)}</div>
+        <div class="crush-meta">${escapeHtml([
+          c.age && `גיל ${c.age}`,
+          c.relationship_status,
+        ].filter(Boolean).join(' · ') || 'אין פרטים')}</div>
+      </div>
+      <div class="crush-list-actions">
+        <button class="icon-btn edit-crush" data-id="${c.id}" title="ערוך">✏️</button>
+        <button class="icon-btn danger delete-crush" data-id="${c.id}" title="מחק">🗑</button>
+      </div>
+    </div>
+  `).join('');
+
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 class="modal-title">פרופילי שיחה</h2>
+    <p class="modal-subtitle">תוסיף מי שאתה מדבר איתו כדי שה-AI ייתן תשובות מותאמות</p>
+
+    <button class="btn btn-primary" id="newCrushBtn" style="margin-bottom:16px;">
+      ➕ פרופיל חדש
+    </button>
+
+    ${state.crushes.length === 0 ? `
+      <div class="empty-list">
+        <div class="empty-list-emoji">💭</div>
+        <div>עדיין אין לך פרופילים</div>
+        <div style="font-size:12px;margin-top:6px;">תוסיף את האדם שאתה מדבר איתו כדי לקבל תשובות מותאמות אישית</div>
+      </div>
+    ` : `
+      <div class="crush-list-item ${state.selectedCrushId === null ? 'selected' : ''}" data-id="">
+        <div class="crush-avatar">∅</div>
+        <div class="crush-info">
+          <div class="crush-name">ללא קונטקסט</div>
+          <div class="crush-meta">תשובה כללית בלי מידע על האדם</div>
+        </div>
+      </div>
+      ${list}
+    `}
+  `);
+
+  $('#newCrushBtn').addEventListener('click', () => {
+    closeModal();
+    openCrushEditor(null);
+  });
+
+  // Click on crush selects it
+  $$('.crush-list-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      // Skip if clicked on action buttons
+      if (e.target.closest('.crush-list-actions')) return;
+      const id = item.dataset.id || null;
+      state.selectedCrushId = id;
+      closeModal();
+      renderMainApp();
+    });
+  });
+
+  $$('.edit-crush').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const crush = state.crushes.find(c => c.id === id);
+      closeModal();
+      openCrushEditor(crush);
+    });
+  });
+
+  $$('.delete-crush').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const crush = state.crushes.find(c => c.id === id);
+      if (!confirm(`למחוק את ${crush?.name}?`)) return;
+      try {
+        await deleteCrush(id);
+        openCrushModal(); // Re-render
+      } catch (err) {
+        alert('שגיאה במחיקה: ' + err.message);
+      }
+    });
+  });
+}
+
+// ----- Crush editor -----
+function openCrushEditor(crush) {
+  const c = crush || {};
+  const isNew = !crush;
+
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 class="modal-title">${isNew ? 'פרופיל חדש' : 'עריכת פרופיל'}</h2>
+    <p class="modal-subtitle">ככל שתיתן יותר מידע, התשובות יהיו מדויקות יותר</p>
+
+    <div id="crushMessages"></div>
+
+    <div class="form-group">
+      <label class="label">שם *</label>
+      <input type="text" id="crName" class="input-field" placeholder="איך קוראים לה/לו" value="${escapeHtml(c.name || '')}" />
+    </div>
+
+    <div class="form-group">
+      <label class="label">גיל</label>
+      <input type="number" id="crAge" class="input-field" placeholder="גיל משוער" min="13" max="120" value="${c.age || ''}" />
+    </div>
+
+    <div class="form-group">
+      <label class="label">מגדר</label>
+      <select id="crGender" class="input-field">
+        <option value="">לא צוין</option>
+        <option value="female" ${c.gender === 'female' ? 'selected' : ''}>נקבה</option>
+        <option value="male" ${c.gender === 'male' ? 'selected' : ''}>זכר</option>
+        <option value="other" ${c.gender === 'other' ? 'selected' : ''}>אחר</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="label">מצב הקשר</label>
+      <input type="text" id="crStatus" class="input-field" placeholder="התחלנו לדבר / דייטים / בזוגיות / חברים..." value="${escapeHtml(c.relationship_status || '')}" />
+    </div>
+
+    <div class="form-group">
+      <label class="label">איך הכרתם</label>
+      <input type="text" id="crMet" class="input-field" placeholder="טינדר, חברה משותפת, עבודה..." value="${escapeHtml(c.how_we_met || '')}" />
+    </div>
+
+    <div class="form-group">
+      <label class="label">ספר עליה/עליו 💭</label>
+      <textarea id="crAbout" class="input-field" placeholder="אישיות, תחביבים, עבודה, מה שחשוב לדעת...">${escapeHtml(c.about || '')}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="label">הערות / רגעים מהשיחה</label>
+      <textarea id="crNotes" class="input-field" placeholder="ציטוטים, בדיחות פנימיות, רגעים חשובים, נקודות רגישות...">${escapeHtml(c.notes || '')}</textarea>
+    </div>
+
+    <button class="btn btn-primary" id="crSave">💾 ${isNew ? 'צור פרופיל' : 'שמור שינויים'}</button>
+  `);
+
+  $('#crSave').addEventListener('click', async () => {
+    const name = $('#crName').value.trim();
+    if (!name) {
+      showToast($('#crushMessages'), 'שם הוא שדה חובה');
+      return;
+    }
+    const ageVal = $('#crAge').value;
+    const data = {
+      ...(crush?.id ? { id: crush.id } : {}),
+      name,
+      age: ageVal ? parseInt(ageVal, 10) : null,
+      gender: $('#crGender').value || null,
+      relationship_status: $('#crStatus').value.trim() || null,
+      how_we_met: $('#crMet').value.trim() || null,
+      about: $('#crAbout').value.trim() || null,
+      notes: $('#crNotes').value.trim() || null,
+    };
+
+    const btn = $('#crSave');
+    btn.disabled = true;
+    try {
+      const saved = await saveCrush(data);
+      state.selectedCrushId = saved.id;
+      closeModal();
+      renderMainApp();
+    } catch (err) {
+      btn.disabled = false;
+      showToast($('#crushMessages'), err.message || 'שגיאה בשמירה');
+    }
+  });
+}
+
+// Make closeModal globally accessible for inline handlers
+window.closeModal = closeModal;
+
+// ===========================================================
+// INIT
+// ===========================================================
+
+(async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    state.user = session.user;
+    await loadProfile();
+    await loadCrushes();
+  }
+  render();
+
+  // Listen for auth changes
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_OUT') {
+      state.user = null;
+      state.profile = null;
+      state.crushes = [];
+      render();
+    } else if (event === 'SIGNED_IN' && session) {
+      state.user = session.user;
+      await loadProfile();
+      await loadCrushes();
+      render();
+    }
+  });
+
+  // Service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+
+</script>
+</body>
+</html>
