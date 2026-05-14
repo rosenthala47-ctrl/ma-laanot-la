@@ -661,6 +661,8 @@ const state = {
   imageBase64: null,
   imageMediaType: null,
   authMode: 'login', // 'login' | 'signup'
+  appMode: 'reply', // 'reply' | 'opener'
+  relationshipLevel: 'stranger', // 'stranger' | 'acquaintance' | 'friends' | 'partner'
 };
 
 // ----- DOM helpers -----
@@ -803,7 +805,16 @@ async function deleteCrush(id) {
 
 async function generateAnswers() {
   let payload;
-  if (state.currentMode === 'image') {
+  if (state.appMode === 'opener') {
+    const context = $('#openerContext')?.value.trim() || '';
+    payload = {
+      mode: 'opener',
+      style: state.selectedStyle,
+      relationshipLevel: state.relationshipLevel,
+      context,
+      crushId: state.selectedCrushId,
+    };
+  } else if (state.currentMode === 'image') {
     if (!state.imageBase64) {
       showToast(null, 'בבקשה העלה תמונה קודם');
       return null;
@@ -1035,6 +1046,7 @@ function renderOnboarding() {
 // ----- Main app -----
 function renderMainApp() {
   const selectedCrush = state.crushes.find(c => c.id === state.selectedCrushId);
+  const isOpener = state.appMode === 'opener';
 
   document.body.innerHTML = `
     <div class="container" id="mainArea">
@@ -1042,6 +1054,12 @@ function renderMainApp() {
         <div class="logo">💬 מה לענות לה?</div>
         <button class="user-menu-btn" id="userMenuBtn" title="תפריט">☰</button>
       </header>
+
+      <!-- App mode tabs -->
+      <div class="tabs" id="appModeTabs">
+        <button class="tab ${!isOpener ? 'active' : ''}" data-appmode="reply"><span>💬</span><span>תשובה להודעה</span></button>
+        <button class="tab ${isOpener ? 'active' : ''}" data-appmode="opener"><span>🚀</span><span>פתיחת שיחה</span></button>
+      </div>
 
       <!-- Crush selector -->
       <div class="crush-selector" id="crushSelector">
@@ -1060,7 +1078,25 @@ function renderMainApp() {
         <div class="crush-arrow">‹</div>
       </div>
 
-      <!-- Message input -->
+      ${isOpener ? `
+      <!-- Opener mode: relationship level -->
+      <div class="card">
+        <div class="card-title">🤝 רמת היכרות</div>
+        <div class="styles-grid" id="relationshipGrid">
+          <button class="style-chip ${state.relationshipLevel === 'stranger' ? 'active' : ''}" data-rel="stranger"><span class="emoji">👋</span><span>שיחה ראשונה</span></button>
+          <button class="style-chip ${state.relationshipLevel === 'acquaintance' ? 'active' : ''}" data-rel="acquaintance"><span class="emoji">🙂</span><span>חצי מכירים</span></button>
+          <button class="style-chip ${state.relationshipLevel === 'friends' ? 'active' : ''}" data-rel="friends"><span class="emoji">🤝</span><span>חברים טובים</span></button>
+          <button class="style-chip ${state.relationshipLevel === 'partner' ? 'active' : ''}" data-rel="partner"><span class="emoji">💕</span><span>זוגיות</span></button>
+        </div>
+      </div>
+
+      <!-- Opener mode: context -->
+      <div class="card">
+        <div class="card-title">📝 הקשר (אופציונלי)</div>
+        <textarea id="openerContext" class="input-field" placeholder="ספר קצת על האדם או הסיטואציה..."></textarea>
+      </div>
+      ` : `
+      <!-- Reply mode: message input -->
       <div class="card">
         <div class="card-title">📩 ההודעה שקיבלת</div>
 
@@ -1087,6 +1123,7 @@ function renderMainApp() {
           </div>
         </div>
       </div>
+      `}
 
       <!-- Style -->
       <div class="card">
@@ -1096,11 +1133,14 @@ function renderMainApp() {
           <button class="style-chip ${state.selectedStyle === 'flirty' ? 'active' : ''}" data-style="flirty"><span class="emoji">😏</span><span>פלרטטני</span></button>
           <button class="style-chip ${state.selectedStyle === 'calm' ? 'active' : ''}" data-style="calm"><span class="emoji">😌</span><span>רגוע</span></button>
           <button class="style-chip ${state.selectedStyle === 'sharp' ? 'active' : ''}" data-style="sharp"><span class="emoji">⚡</span><span>חד</span></button>
-          <button class="style-chip ${state.selectedStyle === 'apologetic' ? 'active' : ''}" data-style="apologetic"><span class="emoji">🙏</span><span>מתנצל</span></button>
+          ${isOpener
+            ? `<button class="style-chip ${state.selectedStyle === 'interesting' ? 'active' : ''}" data-style="interesting"><span class="emoji">🤔</span><span>מעניין</span></button>`
+            : `<button class="style-chip ${state.selectedStyle === 'apologetic' ? 'active' : ''}" data-style="apologetic"><span class="emoji">🙏</span><span>מתנצל</span></button>`
+          }
         </div>
       </div>
 
-      <button class="btn btn-primary" id="generateBtn">✨ תן לי תשובות</button>
+      <button class="btn btn-primary" id="generateBtn">${isOpener ? '🚀 תן לי פתיחות' : '✨ תן לי תשובות'}</button>
 
       <div class="loading" id="loading">
         <div class="loading-dots"><span></span><span></span><span></span></div>
@@ -1126,10 +1166,22 @@ function attachMainAppHandlers() {
   // Crush selector
   $('#crushSelector').addEventListener('click', () => openCrushModal());
 
-  // Tabs
-  $$('.tab').forEach(tab => {
+  // App mode tabs
+  $$('[data-appmode]').forEach(tab => {
     tab.addEventListener('click', () => {
-      $$('.tab').forEach(t => t.classList.remove('active'));
+      const newMode = tab.dataset.appmode;
+      if (newMode === state.appMode) return;
+      if (newMode === 'opener' && state.selectedStyle === 'apologetic') state.selectedStyle = 'funny';
+      if (newMode === 'reply' && state.selectedStyle === 'interesting') state.selectedStyle = 'funny';
+      state.appMode = newMode;
+      renderMainApp();
+    });
+  });
+
+  // Message tabs (text/image) - reply mode only
+  $$('[data-tab]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      $$('[data-tab]').forEach(t => t.classList.remove('active'));
       $$('.tab-content').forEach(c => c.classList.remove('active'));
       tab.classList.add('active');
       const tabName = tab.dataset.tab;
@@ -1142,12 +1194,24 @@ function attachMainAppHandlers() {
   $('#stylesGrid').addEventListener('click', (e) => {
     const chip = e.target.closest('.style-chip');
     if (!chip) return;
-    $$('.style-chip').forEach(c => c.classList.remove('active'));
+    $$('#stylesGrid .style-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     state.selectedStyle = chip.dataset.style;
   });
 
-  // Image upload
+  // Relationship level chips (opener mode only)
+  const relGrid = $('#relationshipGrid');
+  if (relGrid) {
+    relGrid.addEventListener('click', (e) => {
+      const chip = e.target.closest('.style-chip');
+      if (!chip) return;
+      $$('#relationshipGrid .style-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.relationshipLevel = chip.dataset.rel;
+    });
+  }
+
+  // Image upload (reply mode only)
   attachUploadHandlers();
 
   // Generate
@@ -1250,7 +1314,9 @@ async function handleGenerate() {
   $('#results').innerHTML = '';
 
   $('#loading').classList.add('active');
-  $('#loadingText').textContent = state.currentMode === 'image'
+  $('#loadingText').textContent = state.appMode === 'opener'
+    ? 'מכין פתיחות שיחה...'
+    : state.currentMode === 'image'
     ? 'מנתח את הצילום מסך...' : 'קורא את ההודעה וחושב...';
   $('#generateBtn').disabled = true;
 
@@ -1272,7 +1338,7 @@ async function handleGenerate() {
 function renderResults(answers) {
   const styleLabels = {
     funny: 'מצחיק 😂', flirty: 'פלרטטני 😏', calm: 'רגוע 😌',
-    sharp: 'חד ⚡', apologetic: 'מתנצל 🙏'
+    sharp: 'חד ⚡', apologetic: 'מתנצל 🙏', interesting: 'מעניין 🤔'
   };
 
   const html = `
