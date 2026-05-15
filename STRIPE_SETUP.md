@@ -39,20 +39,23 @@
 
 ---
 
-## שלב 3 – יצירת Payment Links
+## שלב 3 – יצירת Payment Links (עם 7 ימי ניסיון חינם)
 
 עבור כל אחד מ-4 המוצרים:
 
 1. בעמוד המוצר ← לחץ `Create payment link`
-2. בקטע **"After payment"** בחר:
+2. **🎁 הוסף ניסיון חינם:** בקטע **"Subscriptions"** סמן:
+   - `Add a free trial` → **7 days**
+   - זה אומר: הלקוח לא יחויב ב-7 הימים הראשונים, אבל כן יזין כרטיס אשראי
+3. בקטע **"After payment"** בחר:
    - `Don't show confirmation page`
    - **Redirect URL** הדבק:
      ```
      https://rosenthala47-ctrl.github.io/ma-laanot-la/?stripe_status=success&tier=plus&cycle=monthly
      ```
      ⚠️ שנה את `tier` ו-`cycle` לפי המוצר (`plus`/`pro`, `monthly`/`yearly`)
-3. תחת **"Advanced options"** הדלק `client_reference_id` (חובה לזהות את המשתמש)
-4. שמור והעתק את ה-URL (`https://buy.stripe.com/...`)
+4. תחת **"Advanced options"** הדלק `client_reference_id` (חובה לזהות את המשתמש)
+5. שמור והעתק את ה-URL (`https://buy.stripe.com/...`)
 
 ---
 

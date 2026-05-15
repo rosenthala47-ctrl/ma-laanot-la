@@ -468,6 +468,16 @@ select.input-field {
   margin-bottom: 14px;
   font-weight: 600;
 }
+.trial-pill {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--accent-yellow), #ff9a3d);
+  color: #3a2300;
+  font-size: 12px; font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(255,217,61,0.3);
+}
 .pricing-features { list-style: none; padding: 0; margin-bottom: 14px; }
 .pricing-features li {
   font-size: 13px; color: var(--text-secondary);
@@ -894,10 +904,12 @@ function escapeHtml(str) {
 
 // ----- Subscription / tier helpers -----
 const TIER_LIMITS = {
-  free:  { dailyGenerations: 5,   crushProfiles: 1,        hasPhrase: false, hasFlirty: false, ads: true  },
-  plus:  { dailyGenerations: 50,  crushProfiles: Infinity, hasPhrase: true,  hasFlirty: true,  ads: false },
-  pro:   { dailyGenerations: Infinity, crushProfiles: Infinity, hasPhrase: true, hasFlirty: true, ads: false },
+  free:  { dailyGenerations: 5,        crushProfiles: 1,        hasOpener: false, hasPhrase: false, hasFlirty: false, ads: true  },
+  plus:  { dailyGenerations: 50,       crushProfiles: 5,        hasOpener: false, hasPhrase: true,  hasFlirty: true,  ads: false },
+  pro:   { dailyGenerations: Infinity, crushProfiles: Infinity, hasOpener: true,  hasPhrase: true,  hasFlirty: true,  ads: false },
 };
+
+const TRIAL_DAYS = 7;
 
 const TIER_LABELS = {
   free: { name: 'חינם', emoji: '🆓' },
@@ -923,6 +935,14 @@ function getTier() {
 function isAdmin() {
   const email = state.user?.email?.toLowerCase();
   return email && CONFIG.ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email);
+}
+
+function trialDaysLeft() {
+  const trialEnd = state.user?.user_metadata?.trial_end;
+  if (!trialEnd) return 0;
+  const ms = new Date(trialEnd).getTime() - Date.now();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
 }
 
 function getTierLimits() {
@@ -1364,11 +1384,16 @@ function renderOnboarding() {
 // ----- Main app -----
 function renderMainApp() {
   const selectedCrush = state.crushes.find(c => c.id === state.selectedCrushId);
+  const tier = getTier();
+  const limits = getTierLimits();
+
+  // Force back to reply mode if current mode is locked for this tier
+  if (state.appMode === 'opener' && !limits.hasOpener) state.appMode = 'reply';
+  if (state.appMode === 'phrase' && !limits.hasPhrase) state.appMode = 'reply';
+
   const isOpener = state.appMode === 'opener';
   const isPhrase = state.appMode === 'phrase';
   const isReply = state.appMode === 'reply';
-  const tier = getTier();
-  const limits = getTierLimits();
   const remaining = remainingToday();
   const showAds = limits.ads;
   const tierInfo = TIER_LABELS[tier];
@@ -1385,7 +1410,7 @@ function renderMainApp() {
         <div class="welcome-greeting">${getGreeting(getUserName(), state.profile?.gender)}</div>
         <div class="welcome-subtitle">${getWelcomeQuestion(state.profile?.gender)}</div>
         <div style="margin-top:10px;">
-          <span class="tier-badge ${tier}">${tierInfo.emoji} ${tier === 'free' ? 'חשבון חינם' : tierInfo.name}</span>
+          <span class="tier-badge ${tier}">${tierInfo.emoji} ${tier === 'free' ? 'חשבון חינם' : tierInfo.name}${trialDaysLeft() > 0 ? ` · 🎁 ניסיון (נשארו ${trialDaysLeft()})` : ''}</span>
         </div>
       </div>
 
@@ -1404,7 +1429,10 @@ function renderMainApp() {
       <!-- App mode tabs -->
       <div class="tabs" id="appModeTabs">
         <button class="tab ${isReply ? 'active' : ''}" data-appmode="reply"><span>💬</span><span>תשובה</span></button>
-        <button class="tab ${isOpener ? 'active' : ''}" data-appmode="opener"><span>🚀</span><span>פתיחה</span></button>
+        <button class="tab ${isOpener ? 'active' : ''} ${!limits.hasOpener ? 'locked' : ''}" data-appmode="opener">
+          ${!limits.hasOpener ? '<span class="lock-badge">🔒</span>' : ''}
+          <span>🚀</span><span>פתיחה</span>
+        </button>
         <button class="tab ${isPhrase ? 'active' : ''} ${!limits.hasPhrase ? 'locked' : ''}" data-appmode="phrase">
           ${!limits.hasPhrase ? '<span class="lock-badge">🔒</span>' : ''}
           <span>✍️</span><span>ניסוח</span>
@@ -1542,6 +1570,10 @@ function attachMainAppHandlers() {
       const limits = getTierLimits();
       if (newMode === 'phrase' && !limits.hasPhrase) {
         openSubscriptionModal('phrase');
+        return;
+      }
+      if (newMode === 'opener' && !limits.hasOpener) {
+        openSubscriptionModal('opener');
         return;
       }
       if (newMode === 'opener' && state.selectedStyle === 'apologetic') state.selectedStyle = 'funny';
@@ -1848,6 +1880,7 @@ function openSubscriptionModal(triggerReason) {
   const currentTier = getTier();
   const reasonMsg = {
     phrase: '✨ "עזרת ניסוח" זמין למנויי Plus ו-Pro',
+    opener: '✨ "פתיחת שיחה" זמין רק במנוי Pro',
     flirty: '✨ סגנון "פלרטטני" זמין למנויי Plus ו-Pro',
     limit: '⚠️ הגעת למגבלת היצירות היומית. שדרג לעוד יצירות',
     profiles: '✨ פרופילים נוספים זמינים למנויי Plus ו-Pro',
@@ -1867,9 +1900,10 @@ function openSubscriptionModal(triggerReason) {
         <div class="pricing-price"><span class="currency">$</span>0<span class="period"> לתמיד</span></div>
         <div style="height:6px"></div>
         <ul class="pricing-features">
+          <li>תשובות להודעות 💬</li>
           <li>5 יצירות ביום</li>
           <li>פרופיל קראש אחד</li>
-          <li>סגנונות בסיסיים</li>
+          <li class="off">בלי "פתיחת שיחה"</li>
           <li class="off">בלי "עזרת ניסוח"</li>
           <li class="off">בלי סגנון "פלרטטני"</li>
           <li class="off">פרסומות מופיעות</li>
@@ -1882,14 +1916,17 @@ function openSubscriptionModal(triggerReason) {
         <div class="pricing-name">⭐ Plus</div>
         <div class="pricing-price"><span class="currency">$</span>${plusPrice}<span class="period"> / ${isYearly ? 'שנה' : 'חודש'}</span></div>
         ${isYearly ? `<div class="pricing-yearly">≈ $${plusMonthly} לחודש · חוסך כ-29%</div>` : '<div style="height:18px"></div>'}
+        <div class="trial-pill">🎁 7 ימי ניסיון חינם</div>
         <ul class="pricing-features">
-          <li>50 יצירות ביום</li>
-          <li>פרופילי קראש <strong>בלי הגבלה</strong></li>
+          <li>תשובות להודעות 💬</li>
           <li>גישה ל"עזרת ניסוח" ✍️</li>
           <li>סגנון "פלרטטני" 😏</li>
+          <li>50 יצירות ביום</li>
+          <li>עד 5 פרופילי קראש</li>
           <li>בלי פרסומות</li>
+          <li class="off">בלי "פתיחת שיחה"</li>
         </ul>
-        ${currentTier !== 'plus' ? `<button class="btn btn-primary" data-tier="plus">${currentTier === 'pro' ? 'עבור ל-Plus' : 'שדרג ל-Plus'}</button>` : ''}
+        ${currentTier !== 'plus' ? `<button class="btn btn-primary" data-tier="plus">${currentTier === 'pro' ? 'עבור ל-Plus' : 'התחל ניסיון חינם'}</button>` : ''}
       </div>
 
       <div class="pricing-card ${currentTier === 'pro' ? 'current' : ''}">
@@ -1897,14 +1934,16 @@ function openSubscriptionModal(triggerReason) {
         <div class="pricing-name">💎 Pro</div>
         <div class="pricing-price"><span class="currency">$</span>${proPrice}<span class="period"> / ${isYearly ? 'שנה' : 'חודש'}</span></div>
         ${isYearly ? `<div class="pricing-yearly">≈ $${proMonthly} לחודש · המשתלם ביותר 🔥</div>` : '<div style="height:18px"></div>'}
+        <div class="trial-pill">🎁 7 ימי ניסיון חינם</div>
         <ul class="pricing-features">
-          <li><strong>יצירות בלי הגבלה</strong></li>
-          <li>פרופילי קראש <strong>בלי הגבלה</strong></li>
-          <li>גישה לכל השירותים</li>
-          <li>כל הסגנונות פתוחים</li>
+          <li><strong>הכל פתוח, בלי הגבלות</strong></li>
+          <li>תשובות + פתיחות + ניסוח</li>
+          <li>כל הסגנונות</li>
+          <li>יצירות בלי הגבלה</li>
+          <li>פרופילי קראש בלי הגבלה</li>
           <li>בלי פרסומות</li>
         </ul>
-        ${currentTier !== 'pro' ? `<button class="btn btn-primary" data-tier="pro">${currentTier === 'plus' ? 'שדרג ל-Pro' : 'שדרג ל-Pro'}</button>` : ''}
+        ${currentTier !== 'pro' ? `<button class="btn btn-primary" data-tier="pro">${currentTier === 'plus' ? 'שדרג ל-Pro' : 'התחל ניסיון חינם'}</button>` : ''}
       </div>
     `;
   };
@@ -1973,24 +2012,44 @@ function openSubscriptionModal(triggerReason) {
 
         if (!stripeUrl) {
           // Stripe links not yet configured - fall back to demo mode
+          const alreadyTrialed = !!state.user.user_metadata?.trial_used;
+          const trialMsg = alreadyTrialed
+            ? ''
+            : `\n\n🎁 כולל ${TRIAL_DAYS} ימי ניסיון חינם (לא תחויב בתקופת הניסיון)`;
           const confirmed = confirm(
             'התשלום עדיין לא הוגדר במערכת.\n\n' +
-            'ללחוץ "אישור" להפעלת מנוי הדגמה ל-' + (_billingCycle === 'yearly' ? '365' : '30') + ' ימים?'
+            'ללחוץ "אישור" להפעלת מנוי הדגמה ל-' + (_billingCycle === 'yearly' ? '365' : '30') + ' ימים?' +
+            trialMsg
           );
           if (!confirmed) return;
           btn.disabled = true;
           btn.textContent = '...';
           try {
             const days = _billingCycle === 'yearly' ? 365 : 30;
-            const expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+            const trialDays = alreadyTrialed ? 0 : TRIAL_DAYS;
+            const expiry = new Date(Date.now() + (days + trialDays) * 24 * 60 * 60 * 1000).toISOString();
+            const trialEnd = trialDays > 0
+              ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
+              : null;
             const { data: updated, error } = await sb.auth.updateUser({
-              data: { subscription_tier: targetTier, subscription_expiry: expiry, subscription_cycle: _billingCycle }
+              data: {
+                subscription_tier: targetTier,
+                subscription_expiry: expiry,
+                subscription_cycle: _billingCycle,
+                trial_end: trialEnd,
+                trial_used: true,
+              }
             });
             if (error) throw error;
             if (updated?.user) state.user = updated.user;
             closeModal();
             renderMainApp();
-            setTimeout(() => showToast(null, `🎉 ברוך הבא ל-${TIER_LABELS[targetTier].name}! (הדגמה)`, 'success'), 100);
+            setTimeout(() => {
+              const msg = trialDays > 0
+                ? `🎉 התחיל ניסיון של ${TRIAL_DAYS} ימים ב-${TIER_LABELS[targetTier].name}! (הדגמה)`
+                : `🎉 ברוך הבא ל-${TIER_LABELS[targetTier].name}! (הדגמה)`;
+              showToast(null, msg, 'success');
+            }, 100);
           } catch (err) {
             btn.disabled = false;
             showToast($('.modal') || null, err.message || 'שגיאה');
