@@ -299,6 +299,12 @@ select.input-field {
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
+#appModeTabs { grid-template-columns: repeat(3, 1fr); }
+#appModeTabs .tab {
+  flex-direction: column; gap: 3px; padding: 9px 4px; font-size: 12px;
+}
+#appModeTabs .tab span:first-child { font-size: 18px; }
+
 /* Upload */
 .upload-area {
   border: 2px dashed var(--border);
@@ -845,6 +851,17 @@ async function generateAnswers() {
       relationshipLevel: state.relationshipLevel,
       context,
     };
+  } else if (state.appMode === 'phrase') {
+    const intent = $('#phraseIntent')?.value.trim();
+    if (!intent) {
+      showToast(null, 'בבקשה כתוב מה אתה רוצה להגיד');
+      return null;
+    }
+    payload = {
+      ...baseFields,
+      mode: 'phrase',
+      intent,
+    };
   } else if (state.currentMode === 'image') {
     if (!state.imageBase64) {
       showToast(null, 'בבקשה העלה תמונה קודם');
@@ -1103,6 +1120,8 @@ function renderOnboarding() {
 function renderMainApp() {
   const selectedCrush = state.crushes.find(c => c.id === state.selectedCrushId);
   const isOpener = state.appMode === 'opener';
+  const isPhrase = state.appMode === 'phrase';
+  const isReply = state.appMode === 'reply';
 
   document.body.innerHTML = `
     <div class="container" id="mainArea">
@@ -1119,8 +1138,9 @@ function renderMainApp() {
 
       <!-- App mode tabs -->
       <div class="tabs" id="appModeTabs">
-        <button class="tab ${!isOpener ? 'active' : ''}" data-appmode="reply"><span>💬</span><span>תשובה להודעה</span></button>
-        <button class="tab ${isOpener ? 'active' : ''}" data-appmode="opener"><span>🚀</span><span>פתיחת שיחה</span></button>
+        <button class="tab ${isReply ? 'active' : ''}" data-appmode="reply"><span>💬</span><span>תשובה</span></button>
+        <button class="tab ${isOpener ? 'active' : ''}" data-appmode="opener"><span>🚀</span><span>פתיחה</span></button>
+        <button class="tab ${isPhrase ? 'active' : ''}" data-appmode="phrase"><span>✍️</span><span>ניסוח</span></button>
       </div>
 
       <!-- Crush selector -->
@@ -1156,6 +1176,12 @@ function renderMainApp() {
       <div class="card">
         <div class="card-title">📝 הקשר (אופציונלי)</div>
         <textarea id="openerContext" class="input-field" placeholder="ספר קצת על האדם או הסיטואציה..."></textarea>
+      </div>
+      ` : isPhrase ? `
+      <!-- Phrase mode: intent -->
+      <div class="card">
+        <div class="card-title">✍️ מה אתה רוצה להגיד?</div>
+        <textarea id="phraseIntent" class="input-field" placeholder="כתוב במשפט פשוט את המסר שלך, ואני אנסח לך אותו בכמה דרכים..."></textarea>
       </div>
       ` : `
       <!-- Reply mode: message input -->
@@ -1202,7 +1228,7 @@ function renderMainApp() {
         </div>
       </div>
 
-      <button class="btn btn-primary" id="generateBtn">${isOpener ? '🚀 תן לי פתיחות' : '✨ תן לי תשובות'}</button>
+      <button class="btn btn-primary" id="generateBtn">${isOpener ? '🚀 תן לי פתיחות' : isPhrase ? '✍️ תן לי ניסוחים' : '✨ תן לי תשובות'}</button>
 
       <div class="loading" id="loading">
         <div class="loading-dots"><span></span><span></span><span></span></div>
@@ -1234,7 +1260,7 @@ function attachMainAppHandlers() {
       const newMode = tab.dataset.appmode;
       if (newMode === state.appMode) return;
       if (newMode === 'opener' && state.selectedStyle === 'apologetic') state.selectedStyle = 'funny';
-      if (newMode === 'reply' && state.selectedStyle === 'interesting') state.selectedStyle = 'funny';
+      if (newMode !== 'opener' && state.selectedStyle === 'interesting') state.selectedStyle = 'funny';
       state.appMode = newMode;
       renderMainApp();
     });
@@ -1378,6 +1404,8 @@ async function handleGenerate() {
   $('#loading').classList.add('active');
   $('#loadingText').textContent = state.appMode === 'opener'
     ? 'מכין פתיחות שיחה...'
+    : state.appMode === 'phrase'
+    ? 'מנסח לך...'
     : state.currentMode === 'image'
     ? 'מנתח את הצילום מסך...' : 'קורא את ההודעה וחושב...';
   $('#generateBtn').disabled = true;
