@@ -840,7 +840,18 @@ select.input-field {
 <script>
 const CONFIG = {
   SUPABASE_URL: 'https://sdoglatrwspjivkztndx.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkb2dsYXRyd3Nwaml2a3p0bmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NzU2NDcsImV4cCI6MjA5MzA1MTY0N30.05KeG_UegNd6K4qPIdiJDJYSgQzQKWJhCxSRRPghEjk'
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkb2dsYXRyd3Nwaml2a3p0bmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NzU2NDcsImV4cCI6MjA5MzA1MTY0N30.05KeG_UegNd6K4qPIdiJDJYSgQzQKWJhCxSRRPghEjk',
+  // ----- Stripe Payment Links -----
+  // אחרי שיוצרים מוצרים ב-Stripe Dashboard ולוחצים "Create payment link",
+  // מדביקים את ה-URL של כל מוצר כאן (https://buy.stripe.com/...)
+  STRIPE_LINKS: {
+    plus_monthly: '', // $7 / month
+    plus_yearly:  '', // $60 / year
+    pro_monthly:  '', // $10 / month
+    pro_yearly:   '', // $99 / year
+  },
+  // אימיילים שמקבלים Pro לתמיד (גישת מנהל)
+  ADMIN_EMAILS: ['rosenthala47@gmail.com'],
 };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -895,6 +906,11 @@ const TIER_LABELS = {
 };
 
 function getTier() {
+  // Admin emails always get Pro tier
+  const email = state.user?.email?.toLowerCase();
+  if (email && CONFIG.ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email)) {
+    return 'pro';
+  }
   const meta = state.user?.user_metadata || {};
   const tier = meta.subscription_tier;
   const expiry = meta.subscription_expiry;
@@ -902,6 +918,11 @@ function getTier() {
     if (!expiry || new Date(expiry) > new Date()) return tier;
   }
   return 'free';
+}
+
+function isAdmin() {
+  const email = state.user?.email?.toLowerCase();
+  return email && CONFIG.ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email);
 }
 
 function getTierLimits() {
@@ -1926,33 +1947,66 @@ function openSubscriptionModal(triggerReason) {
     $$('[data-tier]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const targetTier = btn.dataset.tier;
-        btn.disabled = true;
-        btn.textContent = '...';
-        try {
-          const meta = { subscription_tier: targetTier };
-          if (targetTier === 'plus' || targetTier === 'pro') {
+
+        // Downgrade to free - immediate, no payment
+        if (targetTier === 'free') {
+          btn.disabled = true;
+          btn.textContent = '...';
+          try {
+            const { data: updated, error } = await sb.auth.updateUser({
+              data: { subscription_tier: 'free', subscription_expiry: null, subscription_cycle: null }
+            });
+            if (error) throw error;
+            if (updated?.user) state.user = updated.user;
+            closeModal();
+            renderMainApp();
+          } catch (err) {
+            btn.disabled = false;
+            showToast($('.modal') || null, err.message || 'שגיאה');
+          }
+          return;
+        }
+
+        // Plus / Pro - redirect to Stripe Payment Link
+        const linkKey = `${targetTier}_${_billingCycle}`;
+        const stripeUrl = CONFIG.STRIPE_LINKS[linkKey];
+
+        if (!stripeUrl) {
+          // Stripe links not yet configured - fall back to demo mode
+          const confirmed = confirm(
+            'התשלום עדיין לא הוגדר במערכת.\n\n' +
+            'ללחוץ "אישור" להפעלת מנוי הדגמה ל-' + (_billingCycle === 'yearly' ? '365' : '30') + ' ימים?'
+          );
+          if (!confirmed) return;
+          btn.disabled = true;
+          btn.textContent = '...';
+          try {
             const days = _billingCycle === 'yearly' ? 365 : 30;
             const expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-            meta.subscription_expiry = expiry;
-            meta.subscription_cycle = _billingCycle;
-          } else {
-            meta.subscription_expiry = null;
-            meta.subscription_cycle = null;
+            const { data: updated, error } = await sb.auth.updateUser({
+              data: { subscription_tier: targetTier, subscription_expiry: expiry, subscription_cycle: _billingCycle }
+            });
+            if (error) throw error;
+            if (updated?.user) state.user = updated.user;
+            closeModal();
+            renderMainApp();
+            setTimeout(() => showToast(null, `🎉 ברוך הבא ל-${TIER_LABELS[targetTier].name}! (הדגמה)`, 'success'), 100);
+          } catch (err) {
+            btn.disabled = false;
+            showToast($('.modal') || null, err.message || 'שגיאה');
           }
-          const { data: updated, error } = await sb.auth.updateUser({ data: meta });
-          if (error) throw error;
-          if (updated?.user) state.user = updated.user;
-          closeModal();
-          renderMainApp();
-          setTimeout(() => {
-            if (targetTier !== 'free') {
-              showToast(null, `🎉 ברוך הבא ל-${TIER_LABELS[targetTier].name}!`, 'success');
-            }
-          }, 100);
-        } catch (err) {
-          btn.disabled = false;
-          showToast($('.modal') || null, err.message || 'שגיאה');
+          return;
         }
+
+        // Real Stripe payment flow
+        btn.disabled = true;
+        btn.textContent = 'פותח תשלום...';
+        const params = new URLSearchParams({
+          prefilled_email: state.user.email || '',
+          client_reference_id: state.user.id,
+        });
+        // Stripe Payment Links support these query params for prefill + reference
+        window.location.href = `${stripeUrl}?${params.toString()}`;
       });
     });
   };
@@ -2219,6 +2273,40 @@ window.closeModal = closeModal;
 // INIT
 // ===========================================================
 
+async function handleStripeReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('stripe_status');
+  if (!status || !state.user) return;
+
+  // Clean URL so refresh doesn't re-trigger
+  const cleanUrl = window.location.pathname + window.location.hash;
+  window.history.replaceState({}, '', cleanUrl);
+
+  if (status === 'success') {
+    // Refresh user metadata - the webhook may have already updated it
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) state.user = user;
+    } catch {}
+    // If webhook hasn't fired yet, optimistically set tier from URL
+    const tier = params.get('tier');
+    const cycle = params.get('cycle');
+    if (tier && (tier === 'plus' || tier === 'pro') && getTier() === 'free') {
+      const days = cycle === 'yearly' ? 365 : 30;
+      const expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+      try {
+        const { data: updated } = await sb.auth.updateUser({
+          data: { subscription_tier: tier, subscription_expiry: expiry, subscription_cycle: cycle, pending_stripe_verification: true }
+        });
+        if (updated?.user) state.user = updated.user;
+      } catch {}
+    }
+    setTimeout(() => showToast(null, '🎉 התשלום התקבל! המנוי שלך פעיל.', 'success'), 300);
+  } else if (status === 'cancel') {
+    setTimeout(() => showToast(null, 'התשלום בוטל. אפשר לנסות שוב בכל עת.', 'error'), 300);
+  }
+}
+
 (async function init() {
   const { data: { session } } = await sb.auth.getSession();
   if (session?.user) {
@@ -2227,6 +2315,7 @@ window.closeModal = closeModal;
     await loadCrushes();
   }
   render();
+  await handleStripeReturn();
 
   // Listen for auth changes
   sb.auth.onAuthStateChange(async (event, session) => {
