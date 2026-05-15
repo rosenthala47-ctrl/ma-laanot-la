@@ -302,8 +302,185 @@ select.input-field {
 #appModeTabs { grid-template-columns: repeat(3, 1fr); }
 #appModeTabs .tab {
   flex-direction: column; gap: 3px; padding: 9px 4px; font-size: 12px;
+  position: relative;
 }
 #appModeTabs .tab span:first-child { font-size: 18px; }
+
+/* Premium / lock UI */
+.lock-badge {
+  position: absolute; top: 4px; left: 4px;
+  font-size: 11px;
+  background: var(--accent-yellow);
+  color: #4a3500;
+  border-radius: 8px;
+  padding: 1px 5px;
+  font-weight: 800;
+  line-height: 1.2;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.style-chip.locked { position: relative; opacity: 0.65; }
+.style-chip.locked .lock-badge { top: 6px; left: 6px; }
+
+.tier-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--bg-deep);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.tier-badge.plus {
+  background: linear-gradient(135deg, rgba(157,78,255,0.18), rgba(0,229,255,0.18));
+  border-color: var(--accent-purple);
+  color: var(--accent-cyan);
+}
+.tier-badge.pro {
+  background: var(--gradient-main);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 12px rgba(255,46,147,0.4);
+}
+
+.usage-counter {
+  font-size: 12px; color: var(--text-muted);
+  text-align: center;
+  margin-top: -4px; margin-bottom: 14px;
+}
+.usage-counter.low { color: var(--accent-yellow); }
+.usage-counter.empty { color: var(--danger); }
+
+/* Ad banner (free users) */
+.ad-banner {
+  background: linear-gradient(135deg, rgba(255,217,61,0.08), rgba(255,46,147,0.08));
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ad-banner:hover { border-color: var(--accent-pink); }
+.ad-banner-icon { font-size: 24px; }
+.ad-banner-body { flex: 1; }
+.ad-banner-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.ad-banner-subtitle { font-size: 11px; color: var(--text-muted); }
+.ad-banner-cta {
+  background: var(--gradient-main);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: 'Heebo', sans-serif;
+  cursor: pointer;
+}
+
+/* Pricing modal */
+.pricing-intro {
+  text-align: center;
+  font-size: 13px; color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+.billing-toggle {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--bg-deep);
+  border-radius: 14px; padding: 4px;
+  border: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+.billing-toggle button {
+  background: transparent; border: none;
+  padding: 10px 8px;
+  color: var(--text-muted);
+  font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; border-radius: 10px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+.billing-toggle button.active {
+  background: var(--gradient-main); color: white;
+  box-shadow: 0 4px 12px rgba(255,46,147,0.3);
+}
+.save-pill {
+  position: absolute; top: -8px; left: -6px;
+  background: var(--accent-yellow);
+  color: #4a3500;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 8px;
+  line-height: 1.2;
+}
+
+.pricing-card {
+  background: var(--bg-deep);
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 14px;
+  position: relative;
+}
+.pricing-card.recommended {
+  border-color: var(--accent-pink);
+  box-shadow: 0 8px 24px rgba(255,46,147,0.2);
+}
+.pricing-card.current {
+  border-color: var(--accent-cyan);
+  background: rgba(0,229,255,0.05);
+}
+.recommended-tag {
+  position: absolute; top: -10px; right: 18px;
+  background: var(--gradient-main);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+.current-tag {
+  position: absolute; top: -10px; right: 18px;
+  background: var(--accent-cyan);
+  color: var(--bg-deep);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+.pricing-name {
+  font-size: 18px; font-weight: 800;
+  background: var(--gradient-main);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+.pricing-price {
+  font-size: 28px; font-weight: 900;
+  margin-bottom: 2px;
+}
+.pricing-price .currency { font-size: 18px; font-weight: 700; color: var(--text-muted); }
+.pricing-price .period { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.pricing-yearly {
+  font-size: 12px; color: var(--accent-cyan);
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+.pricing-features { list-style: none; padding: 0; margin-bottom: 14px; }
+.pricing-features li {
+  font-size: 13px; color: var(--text-secondary);
+  padding: 5px 0;
+  display: flex; align-items: flex-start; gap: 6px;
+  line-height: 1.4;
+}
+.pricing-features li::before {
+  content: "✓"; color: var(--accent-cyan);
+  font-weight: 800; flex-shrink: 0;
+}
+.pricing-features li.off { color: var(--text-muted); }
+.pricing-features li.off::before { content: "✕"; color: var(--text-muted); }
 
 /* Upload */
 .upload-area {
@@ -702,6 +879,53 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str ?? '';
   return div.innerHTML;
+}
+
+// ----- Subscription / tier helpers -----
+const TIER_LIMITS = {
+  free:  { dailyGenerations: 5,   crushProfiles: 1,        hasPhrase: false, hasFlirty: false, ads: true  },
+  plus:  { dailyGenerations: 50,  crushProfiles: Infinity, hasPhrase: true,  hasFlirty: true,  ads: false },
+  pro:   { dailyGenerations: Infinity, crushProfiles: Infinity, hasPhrase: true, hasFlirty: true, ads: false },
+};
+
+const TIER_LABELS = {
+  free: { name: 'חינם', emoji: '🆓' },
+  plus: { name: 'Plus', emoji: '⭐' },
+  pro:  { name: 'Pro',  emoji: '💎' },
+};
+
+function getTier() {
+  const meta = state.user?.user_metadata || {};
+  const tier = meta.subscription_tier;
+  const expiry = meta.subscription_expiry;
+  if (tier && (tier === 'plus' || tier === 'pro')) {
+    if (!expiry || new Date(expiry) > new Date()) return tier;
+  }
+  return 'free';
+}
+
+function getTierLimits() {
+  return TIER_LIMITS[getTier()];
+}
+
+function usageKey() {
+  const today = new Date().toISOString().slice(0, 10);
+  return `mll_usage_${state.user?.id || 'anon'}_${today}`;
+}
+
+function getUsageToday() {
+  return parseInt(localStorage.getItem(usageKey()) || '0', 10);
+}
+
+function incrementUsage() {
+  const cur = getUsageToday();
+  localStorage.setItem(usageKey(), String(cur + 1));
+}
+
+function remainingToday() {
+  const limit = getTierLimits().dailyGenerations;
+  if (limit === Infinity) return Infinity;
+  return Math.max(0, limit - getUsageToday());
 }
 
 function calcAge(birthDate) {
@@ -1122,6 +1346,11 @@ function renderMainApp() {
   const isOpener = state.appMode === 'opener';
   const isPhrase = state.appMode === 'phrase';
   const isReply = state.appMode === 'reply';
+  const tier = getTier();
+  const limits = getTierLimits();
+  const remaining = remainingToday();
+  const showAds = limits.ads;
+  const tierInfo = TIER_LABELS[tier];
 
   document.body.innerHTML = `
     <div class="container" id="mainArea">
@@ -1134,13 +1363,31 @@ function renderMainApp() {
       <div class="welcome-card">
         <div class="welcome-greeting">${getGreeting(getUserName(), state.profile?.gender)}</div>
         <div class="welcome-subtitle">${getWelcomeQuestion(state.profile?.gender)}</div>
+        <div style="margin-top:10px;">
+          <span class="tier-badge ${tier}">${tierInfo.emoji} ${tier === 'free' ? 'חשבון חינם' : tierInfo.name}</span>
+        </div>
       </div>
+
+      ${showAds ? `
+      <!-- Ad / upgrade banner -->
+      <div class="ad-banner" id="upgradeAd">
+        <div class="ad-banner-icon">💎</div>
+        <div class="ad-banner-body">
+          <div class="ad-banner-title">שדרג ל-Plus או Pro</div>
+          <div class="ad-banner-subtitle">בלי פרסומות, ניסוח הודעות, סגנון פלרטטני ועוד</div>
+        </div>
+        <button class="ad-banner-cta">שדרג</button>
+      </div>
+      ` : ''}
 
       <!-- App mode tabs -->
       <div class="tabs" id="appModeTabs">
         <button class="tab ${isReply ? 'active' : ''}" data-appmode="reply"><span>💬</span><span>תשובה</span></button>
         <button class="tab ${isOpener ? 'active' : ''}" data-appmode="opener"><span>🚀</span><span>פתיחה</span></button>
-        <button class="tab ${isPhrase ? 'active' : ''}" data-appmode="phrase"><span>✍️</span><span>ניסוח</span></button>
+        <button class="tab ${isPhrase ? 'active' : ''} ${!limits.hasPhrase ? 'locked' : ''}" data-appmode="phrase">
+          ${!limits.hasPhrase ? '<span class="lock-badge">🔒</span>' : ''}
+          <span>✍️</span><span>ניסוח</span>
+        </button>
       </div>
 
       <!-- Crush selector -->
@@ -1218,7 +1465,10 @@ function renderMainApp() {
         <div class="card-title">🎭 סגנון תשובה</div>
         <div class="styles-grid" id="stylesGrid">
           <button class="style-chip ${state.selectedStyle === 'funny' ? 'active' : ''}" data-style="funny"><span class="emoji">😂</span><span>מצחיק</span></button>
-          <button class="style-chip ${state.selectedStyle === 'flirty' ? 'active' : ''}" data-style="flirty"><span class="emoji">😏</span><span>פלרטטני</span></button>
+          <button class="style-chip ${state.selectedStyle === 'flirty' ? 'active' : ''} ${!limits.hasFlirty ? 'locked' : ''}" data-style="flirty">
+            ${!limits.hasFlirty ? '<span class="lock-badge">🔒</span>' : ''}
+            <span class="emoji">😏</span><span>פלרטטני</span>
+          </button>
           <button class="style-chip ${state.selectedStyle === 'calm' ? 'active' : ''}" data-style="calm"><span class="emoji">😌</span><span>רגוע</span></button>
           <button class="style-chip ${state.selectedStyle === 'sharp' ? 'active' : ''}" data-style="sharp"><span class="emoji">⚡</span><span>חד</span></button>
           ${isOpener
@@ -1229,6 +1479,11 @@ function renderMainApp() {
       </div>
 
       <button class="btn btn-primary" id="generateBtn">${isOpener ? '🚀 תן לי פתיחות' : isPhrase ? '✍️ תן לי ניסוחים' : '✨ תן לי תשובות'}</button>
+      ${remaining !== Infinity ? `
+        <div class="usage-counter ${remaining === 0 ? 'empty' : remaining <= 2 ? 'low' : ''}" style="margin-top:10px;">
+          ${remaining === 0 ? '⚠️ סיימת את היצירות להיום - שדרג להמשך' : `נשארו לך ${remaining} יצירות היום`}
+        </div>
+      ` : ''}
 
       <div class="loading" id="loading">
         <div class="loading-dots"><span></span><span></span><span></span></div>
@@ -1254,11 +1509,20 @@ function attachMainAppHandlers() {
   // Crush selector
   $('#crushSelector').addEventListener('click', () => openCrushModal());
 
+  // Upgrade ad banner
+  const adBanner = $('#upgradeAd');
+  if (adBanner) adBanner.addEventListener('click', () => openSubscriptionModal());
+
   // App mode tabs
   $$('[data-appmode]').forEach(tab => {
     tab.addEventListener('click', () => {
       const newMode = tab.dataset.appmode;
       if (newMode === state.appMode) return;
+      const limits = getTierLimits();
+      if (newMode === 'phrase' && !limits.hasPhrase) {
+        openSubscriptionModal('phrase');
+        return;
+      }
       if (newMode === 'opener' && state.selectedStyle === 'apologetic') state.selectedStyle = 'funny';
       if (newMode !== 'opener' && state.selectedStyle === 'interesting') state.selectedStyle = 'funny';
       state.appMode = newMode;
@@ -1282,9 +1546,15 @@ function attachMainAppHandlers() {
   $('#stylesGrid').addEventListener('click', (e) => {
     const chip = e.target.closest('.style-chip');
     if (!chip) return;
+    const style = chip.dataset.style;
+    const limits = getTierLimits();
+    if (style === 'flirty' && !limits.hasFlirty) {
+      openSubscriptionModal('flirty');
+      return;
+    }
     $$('#stylesGrid .style-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
-    state.selectedStyle = chip.dataset.style;
+    state.selectedStyle = style;
   });
 
   // Relationship level chips (opener mode only)
@@ -1401,6 +1671,11 @@ async function handleGenerate() {
   $$('.error-box').forEach(b => b.remove());
   $('#results').innerHTML = '';
 
+  if (remainingToday() === 0) {
+    openSubscriptionModal('limit');
+    return;
+  }
+
   $('#loading').classList.add('active');
   $('#loadingText').textContent = state.appMode === 'opener'
     ? 'מכין פתיחות שיחה...'
@@ -1413,8 +1688,16 @@ async function handleGenerate() {
   try {
     const answers = await generateAnswers();
     if (answers) {
+      incrementUsage();
       renderResults(answers);
       $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const ctr = $('.usage-counter');
+      const rem = remainingToday();
+      if (ctr && rem !== Infinity) {
+        ctr.classList.toggle('low', rem > 0 && rem <= 2);
+        ctr.classList.toggle('empty', rem === 0);
+        ctr.textContent = rem === 0 ? '⚠️ סיימת את היצירות להיום - שדרג להמשך' : `נשארו לך ${rem} יצירות היום`;
+      }
     }
   } catch (err) {
     console.error(err);
@@ -1494,10 +1777,22 @@ function closeModal() {
 // ----- User menu -----
 function openUserMenu() {
   const myAge = calcAge(state.profile?.birth_date);
+  const tier = getTier();
+  const tierInfo = TIER_LABELS[tier];
   openModal(`
     <button class="modal-close" onclick="closeModal()">✕</button>
     <h2 class="modal-title">הגדרות</h2>
     <p class="modal-subtitle">${escapeHtml(state.user?.email || '')}</p>
+
+    <div style="background:var(--bg-deep);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">המנוי שלך</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <span class="tier-badge ${tier}">${tierInfo.emoji} ${tier === 'free' ? 'חשבון חינם' : tierInfo.name}</span>
+        ${tier === 'free' ? '<span style="font-size:12px;color:var(--accent-cyan);font-weight:700;">שדרג והרוויח! 💎</span>' : ''}
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="subscriptionBtn" style="margin-bottom:10px;">${tier === 'free' ? '💎 שדרג ל-Plus / Pro' : '💎 נהל מנוי'}</button>
 
     <div style="background:var(--bg-deep);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;">
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">הפרופיל שלך</div>
@@ -1511,6 +1806,10 @@ function openUserMenu() {
     <button class="btn btn-danger" id="signOutBtn">🚪 התנתק</button>
   `);
 
+  $('#subscriptionBtn').addEventListener('click', () => {
+    closeModal();
+    openSubscriptionModal();
+  });
   $('#editProfileBtn').addEventListener('click', () => {
     closeModal();
     openProfileEditor();
@@ -1519,6 +1818,146 @@ function openUserMenu() {
     await signOut();
     closeModal();
   });
+}
+
+// ----- Subscription modal -----
+let _billingCycle = 'yearly'; // 'monthly' | 'yearly'
+
+function openSubscriptionModal(triggerReason) {
+  const currentTier = getTier();
+  const reasonMsg = {
+    phrase: '✨ "עזרת ניסוח" זמין למנויי Plus ו-Pro',
+    flirty: '✨ סגנון "פלרטטני" זמין למנויי Plus ו-Pro',
+    limit: '⚠️ הגעת למגבלת היצירות היומית. שדרג לעוד יצירות',
+    profiles: '✨ פרופילים נוספים זמינים למנויי Plus ו-Pro',
+  }[triggerReason] || '';
+
+  const renderTiers = () => {
+    const isYearly = _billingCycle === 'yearly';
+    const plusPrice = isYearly ? 60 : 7;
+    const proPrice = isYearly ? 99 : 10;
+    const plusMonthly = isYearly ? (60 / 12).toFixed(2) : 7;
+    const proMonthly = isYearly ? (99 / 12).toFixed(2) : 10;
+
+    return `
+      <div class="pricing-card ${currentTier === 'free' ? 'current' : ''}">
+        ${currentTier === 'free' ? '<span class="current-tag">המנוי שלך</span>' : ''}
+        <div class="pricing-name">🆓 חינם</div>
+        <div class="pricing-price"><span class="currency">$</span>0<span class="period"> לתמיד</span></div>
+        <div style="height:6px"></div>
+        <ul class="pricing-features">
+          <li>5 יצירות ביום</li>
+          <li>פרופיל קראש אחד</li>
+          <li>סגנונות בסיסיים</li>
+          <li class="off">בלי "עזרת ניסוח"</li>
+          <li class="off">בלי סגנון "פלרטטני"</li>
+          <li class="off">פרסומות מופיעות</li>
+        </ul>
+        ${currentTier !== 'free' ? `<button class="btn btn-secondary" data-tier="free">חזור לחינם</button>` : ''}
+      </div>
+
+      <div class="pricing-card recommended ${currentTier === 'plus' ? 'current' : ''}">
+        ${currentTier === 'plus' ? '<span class="current-tag">המנוי שלך</span>' : '<span class="recommended-tag">⭐ פופולרי</span>'}
+        <div class="pricing-name">⭐ Plus</div>
+        <div class="pricing-price"><span class="currency">$</span>${plusPrice}<span class="period"> / ${isYearly ? 'שנה' : 'חודש'}</span></div>
+        ${isYearly ? `<div class="pricing-yearly">≈ $${plusMonthly} לחודש · חוסך כ-29%</div>` : '<div style="height:18px"></div>'}
+        <ul class="pricing-features">
+          <li>50 יצירות ביום</li>
+          <li>פרופילי קראש <strong>בלי הגבלה</strong></li>
+          <li>גישה ל"עזרת ניסוח" ✍️</li>
+          <li>סגנון "פלרטטני" 😏</li>
+          <li>בלי פרסומות</li>
+        </ul>
+        ${currentTier !== 'plus' ? `<button class="btn btn-primary" data-tier="plus">${currentTier === 'pro' ? 'עבור ל-Plus' : 'שדרג ל-Plus'}</button>` : ''}
+      </div>
+
+      <div class="pricing-card ${currentTier === 'pro' ? 'current' : ''}">
+        ${currentTier === 'pro' ? '<span class="current-tag">המנוי שלך</span>' : ''}
+        <div class="pricing-name">💎 Pro</div>
+        <div class="pricing-price"><span class="currency">$</span>${proPrice}<span class="period"> / ${isYearly ? 'שנה' : 'חודש'}</span></div>
+        ${isYearly ? `<div class="pricing-yearly">≈ $${proMonthly} לחודש · המשתלם ביותר 🔥</div>` : '<div style="height:18px"></div>'}
+        <ul class="pricing-features">
+          <li><strong>יצירות בלי הגבלה</strong></li>
+          <li>פרופילי קראש <strong>בלי הגבלה</strong></li>
+          <li>גישה לכל השירותים</li>
+          <li>כל הסגנונות פתוחים</li>
+          <li>בלי פרסומות</li>
+        </ul>
+        ${currentTier !== 'pro' ? `<button class="btn btn-primary" data-tier="pro">${currentTier === 'plus' ? 'שדרג ל-Pro' : 'שדרג ל-Pro'}</button>` : ''}
+      </div>
+    `;
+  };
+
+  const buildModal = () => `
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 class="modal-title">💎 שדרג את המנוי</h2>
+    ${reasonMsg ? `<p class="modal-subtitle" style="color:var(--accent-cyan);font-weight:700;">${reasonMsg}</p>` : '<p class="modal-subtitle">בחר את התוכנית שמתאימה לך</p>'}
+
+    <div class="billing-toggle" id="billingToggle">
+      <button data-cycle="monthly" class="${_billingCycle === 'monthly' ? 'active' : ''}">חודשי</button>
+      <button data-cycle="yearly" class="${_billingCycle === 'yearly' ? 'active' : ''}">
+        שנתי
+        <span class="save-pill">חוסך עד 29%</span>
+      </button>
+    </div>
+
+    <div id="pricingTiers">${renderTiers()}</div>
+
+    <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:14px;line-height:1.5;">
+      💡 התשלום עדיין בהקמה - לחיצה על "שדרג" תפעיל את המנוי לצורך הדגמה (ל-30 ימים)
+    </p>
+  `;
+
+  openModal(buildModal());
+
+  const attachHandlers = () => {
+    $$('#billingToggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        _billingCycle = btn.dataset.cycle;
+        $$('#billingToggle button').forEach(b => b.classList.toggle('active', b.dataset.cycle === _billingCycle));
+        $('#pricingTiers').innerHTML = renderTiers();
+        attachTierButtons();
+      });
+    });
+    attachTierButtons();
+  };
+
+  const attachTierButtons = () => {
+    $$('[data-tier]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const targetTier = btn.dataset.tier;
+        btn.disabled = true;
+        btn.textContent = '...';
+        try {
+          const meta = { subscription_tier: targetTier };
+          if (targetTier === 'plus' || targetTier === 'pro') {
+            const days = _billingCycle === 'yearly' ? 365 : 30;
+            const expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+            meta.subscription_expiry = expiry;
+            meta.subscription_cycle = _billingCycle;
+          } else {
+            meta.subscription_expiry = null;
+            meta.subscription_cycle = null;
+          }
+          const { data: updated, error } = await sb.auth.updateUser({ data: meta });
+          if (error) throw error;
+          if (updated?.user) state.user = updated.user;
+          closeModal();
+          renderMainApp();
+          setTimeout(() => {
+            if (targetTier !== 'free') {
+              showToast(null, `🎉 ברוך הבא ל-${TIER_LABELS[targetTier].name}!`, 'success');
+            }
+          }, 100);
+        } catch (err) {
+          btn.disabled = false;
+          showToast($('.modal') || null, err.message || 'שגיאה');
+        }
+      });
+    });
+  };
+
+  attachHandlers();
 }
 
 // ----- Profile editor -----
@@ -1638,6 +2077,12 @@ function openCrushModal() {
   `);
 
   $('#newCrushBtn').addEventListener('click', () => {
+    const limit = getTierLimits().crushProfiles;
+    if (state.crushes.length >= limit) {
+      closeModal();
+      openSubscriptionModal('profiles');
+      return;
+    }
     closeModal();
     openCrushEditor(null);
   });
