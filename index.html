@@ -81,6 +81,29 @@ body::after {
   margin-bottom: 20px; padding-top: 8px;
 }
 
+.welcome-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.welcome-greeting {
+  font-size: 22px; font-weight: 800;
+  background: var(--gradient-main);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.welcome-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
 .logo {
   font-size: 22px; font-weight: 900; letter-spacing: -0.5px;
   background: var(--gradient-main);
@@ -805,14 +828,22 @@ async function deleteCrush(id) {
 
 async function generateAnswers() {
   let payload;
+  const selectedCrush = state.crushes.find(c => c.id === state.selectedCrushId) || null;
+  const baseFields = {
+    style: state.selectedStyle,
+    crush: selectedCrush,
+    crushId: state.selectedCrushId,
+    userGender: state.profile?.gender || null,
+    userName: getUserName() || null,
+  };
+
   if (state.appMode === 'opener') {
     const context = $('#openerContext')?.value.trim() || '';
     payload = {
+      ...baseFields,
       mode: 'opener',
-      style: state.selectedStyle,
       relationshipLevel: state.relationshipLevel,
       context,
-      crushId: state.selectedCrushId,
     };
   } else if (state.currentMode === 'image') {
     if (!state.imageBase64) {
@@ -820,11 +851,10 @@ async function generateAnswers() {
       return null;
     }
     payload = {
+      ...baseFields,
       mode: 'image',
-      style: state.selectedStyle,
       imageBase64: state.imageBase64,
       imageMediaType: state.imageMediaType,
-      crushId: state.selectedCrushId,
     };
   } else {
     const text = $('#message')?.value.trim();
@@ -832,7 +862,7 @@ async function generateAnswers() {
       showToast(null, 'בבקשה הדבק הודעה קודם');
       return null;
     }
-    payload = { mode: 'text', style: state.selectedStyle, text, crushId: state.selectedCrushId };
+    payload = { ...baseFields, mode: 'text', text };
   }
 
   const url = `${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`;
@@ -867,11 +897,27 @@ async function generateAnswers() {
 function render() {
   if (!state.user) {
     renderAuthScreen();
-  } else if (!state.profile?.birth_date || !state.profile?.gender || !state.profile?.usage_purpose) {
+  } else if (!state.user?.user_metadata?.full_name || !state.profile?.birth_date || !state.profile?.gender || !state.profile?.usage_purpose) {
     renderOnboarding();
   } else {
     renderMainApp();
   }
+}
+
+function getUserName() {
+  return state.user?.user_metadata?.full_name || '';
+}
+
+function getGreeting(name, gender) {
+  const safeName = escapeHtml(name || '');
+  const word = gender === 'female' ? 'ברוכה הבאה' : gender === 'male' ? 'ברוך הבא' : 'שלום';
+  return `${word}, ${safeName}! 👋`;
+}
+
+function getWelcomeQuestion(gender) {
+  if (gender === 'female') return 'למי תרצי לשלוח הודעה או לדעת מה לענות?';
+  if (gender === 'male') return 'למי תרצה לשלוח הודעה או לדעת מה לענות?';
+  return 'למי תרצו לשלוח הודעה או לדעת מה לענות?';
 }
 
 // ----- Auth screen -----
@@ -975,6 +1021,11 @@ function renderOnboarding() {
           <div id="onboardMessages"></div>
 
           <div class="form-group">
+            <label class="label">👤 השם שלך</label>
+            <input type="text" id="onbName" class="input-field" placeholder="איך קוראים לך?" />
+          </div>
+
+          <div class="form-group">
             <label class="label">📅 תאריך לידה</label>
             <input type="date" id="onbBirth" class="input-field" />
           </div>
@@ -1009,6 +1060,7 @@ function renderOnboarding() {
   `;
 
   // Pre-fill if already partially set
+  if (getUserName()) $('#onbName').value = getUserName();
   if (state.profile) {
     if (state.profile.birth_date) $('#onbBirth').value = state.profile.birth_date;
     if (state.profile.gender) $('#onbGender').value = state.profile.gender;
@@ -1016,11 +1068,12 @@ function renderOnboarding() {
   }
 
   $('#onbSubmit').addEventListener('click', async () => {
+    const full_name = $('#onbName').value.trim();
     const birth_date = $('#onbBirth').value;
     const gender = $('#onbGender').value;
     const usage_purpose = $('#onbPurpose').value;
 
-    if (!birth_date || !gender || !usage_purpose) {
+    if (!full_name || !birth_date || !gender || !usage_purpose) {
       showToast($('#onboardMessages'), 'מלא את כל השדות');
       return;
     }
@@ -1034,6 +1087,9 @@ function renderOnboarding() {
     const btn = $('#onbSubmit');
     btn.disabled = true;
     try {
+      const { data: updated, error: updateErr } = await sb.auth.updateUser({ data: { full_name } });
+      if (updateErr) throw updateErr;
+      if (updated?.user) state.user = updated.user;
       await saveProfile({ birth_date, gender, usage_purpose });
       render();
     } catch (err) {
@@ -1054,6 +1110,12 @@ function renderMainApp() {
         <div class="logo">💬 מה לענות לה?</div>
         <button class="user-menu-btn" id="userMenuBtn" title="תפריט">☰</button>
       </header>
+
+      <!-- Welcome -->
+      <div class="welcome-card">
+        <div class="welcome-greeting">${getGreeting(getUserName(), state.profile?.gender)}</div>
+        <div class="welcome-subtitle">${getWelcomeQuestion(state.profile?.gender)}</div>
+      </div>
 
       <!-- App mode tabs -->
       <div class="tabs" id="appModeTabs">
@@ -1441,6 +1503,11 @@ function openProfileEditor() {
     <div id="profileMessages"></div>
 
     <div class="form-group">
+      <label class="label">👤 השם שלך</label>
+      <input type="text" id="pfName" class="input-field" placeholder="איך קוראים לך?" value="${escapeHtml(getUserName())}" />
+    </div>
+
+    <div class="form-group">
       <label class="label">📅 תאריך לידה</label>
       <input type="date" id="pfBirth" class="input-field" value="${state.profile?.birth_date || ''}" />
     </div>
@@ -1470,11 +1537,12 @@ function openProfileEditor() {
   `);
 
   $('#pfSave').addEventListener('click', async () => {
+    const full_name = $('#pfName').value.trim();
     const birth_date = $('#pfBirth').value;
     const gender = $('#pfGender').value;
     const usage_purpose = $('#pfPurpose').value;
 
-    if (!birth_date || !gender || !usage_purpose) {
+    if (!full_name || !birth_date || !gender || !usage_purpose) {
       showToast($('#profileMessages'), 'מלא את כל השדות');
       return;
     }
@@ -1482,8 +1550,12 @@ function openProfileEditor() {
     const btn = $('#pfSave');
     btn.disabled = true;
     try {
+      const { data: updated, error: updateErr } = await sb.auth.updateUser({ data: { full_name } });
+      if (updateErr) throw updateErr;
+      if (updated?.user) state.user = updated.user;
       await saveProfile({ birth_date, gender, usage_purpose });
       closeModal();
+      renderMainApp();
     } catch (err) {
       btn.disabled = false;
       showToast($('#profileMessages'), err.message || 'שגיאה בשמירה');
