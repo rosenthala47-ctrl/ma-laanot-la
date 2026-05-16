@@ -386,6 +386,8 @@ select.input {
 }
 .style-chip:active { transform:scale(0.94); }
 .style-chip .se { font-size:18px; }
+.style-chip.locked { opacity:0.5; cursor:pointer; }
+.style-chip.locked::after { content:'🔒'; font-size:11px; margin-right:2px; }
 .style-chip.active {
   background:var(--grad-1); color:white; border-color:transparent;
   box-shadow:0 6px 18px rgba(255,46,147,0.4);
@@ -762,6 +764,12 @@ select.input {
 .text-center { text-align:center; }
 .text-dim { color:var(--text-3); }
 .muted-note { font-size:11px; color:var(--text-3); text-align:center; line-height:1.5; margin-top:14px; }
+.toggle-switch { position:relative; display:inline-block; width:44px; height:26px; flex-shrink:0; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-track { position:absolute; inset:0; background:var(--stroke); border-radius:26px; transition:background 0.25s; cursor:pointer; }
+.toggle-track::before { content:''; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform 0.25s; }
+.toggle-switch input:checked + .toggle-track { background:var(--pink); }
+.toggle-switch input:checked + .toggle-track::before { transform:translateX(18px); }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
@@ -794,9 +802,9 @@ const { createClient } = supabase;
 const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const TIER_LIMITS = {
-  free: { dailyGenerations:5, crushProfiles:1, hasOpener:false, hasPhrase:false, ads:true },
-  plus: { dailyGenerations:50, crushProfiles:5, hasOpener:false, hasPhrase:true, ads:false },
-  pro:  { dailyGenerations:Infinity, crushProfiles:Infinity, hasOpener:true, hasPhrase:true, ads:false },
+  free: { dailyGenerations:5, crushProfiles:1, hasOpener:false, hasPhrase:false, ads:true, lockedStyles:['flirty','cold'] },
+  plus: { dailyGenerations:50, crushProfiles:5, hasOpener:false, hasPhrase:true, ads:false, lockedStyles:[] },
+  pro:  { dailyGenerations:Infinity, crushProfiles:Infinity, hasOpener:true, hasPhrase:true, ads:false, lockedStyles:[] },
 };
 const TIER_LABELS = {
   free: { name:'חינם', emoji:'🆓' },
@@ -838,7 +846,7 @@ const state = {
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => root.querySelectorAll(s);
 const esc = (s) => { const d=document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
-const haptic = (ms=10) => { try { navigator.vibrate?.(ms); } catch {} };
+const haptic = (ms=10) => { try { if (localStorage.getItem('mll2_haptic') !== '0') navigator.vibrate?.(ms); } catch {} };
 
 function showToast(msg, type='') {
   const wrap = $('#toasts');
@@ -1210,11 +1218,12 @@ function renderHome() {
     <div class="card">
       <div class="card-title">🎭 איזה סגנון?</div>
       <div class="styles-scroll" id="stylesScroll">
-        ${STYLES.map(s => `
-          <button class="style-chip ${state.selectedStyle===s.id?'active':''}" data-style="${s.id}">
+        ${STYLES.map(s => {
+          const isLocked = (getLimits().lockedStyles||[]).includes(s.id);
+          return `<button class="style-chip ${state.selectedStyle===s.id?'active':''} ${isLocked?'locked':''}" data-style="${s.id}" data-locked="${isLocked}">
             <span class="se">${s.emoji}</span><span>${s.label}</span>
-          </button>
-        `).join('')}
+          </button>`;
+        }).join('')}
       </div>
     </div>
 
@@ -1437,6 +1446,21 @@ function renderSettings() {
 
       <button class="btn btn-secondary" id="editProfile" style="margin-bottom:10px;">✏️ ערוך פרופיל</button>
       <button class="btn btn-secondary" id="goPremium" style="margin-bottom:10px;">💎 ${tier==='free'?'שדרג ל-Premium':'נהל מנוי'}</button>
+
+      <div class="card" style="margin-bottom:10px;">
+        <div class="card-title">הגדרות</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;">
+          <div>
+            <div style="font-weight:700;font-size:14px;">זמזום (Haptic)</div>
+            <div class="text-dim" style="font-size:12px;">רטט קל בכל לחיצה</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hapticToggle" ${localStorage.getItem('mll2_haptic')==='0'?'':'checked'} />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
       <button class="btn btn-danger" id="signOut">🚪 התנתק</button>
 
       <div class="muted-note">גרסה 2.0 · עיצוב מחדש</div>
@@ -1586,6 +1610,7 @@ function attachHandlers() {
 
   // ---- style chips ----
   $$('.style-chip').forEach(el => el.addEventListener('click', () => {
+    if (el.dataset.locked === 'true') { haptic(20); state.navTab='premium'; render(); showToast('סגנון זה זמין ב-Plus ומעלה 💎', 'error'); return; }
     haptic();
     state.selectedStyle = el.dataset.style;
     $$('.style-chip').forEach(c => c.classList.remove('active'));
@@ -1627,6 +1652,9 @@ function attachHandlers() {
   // ---- settings ----
   $('#editProfile')?.addEventListener('click', () => { haptic(); openProfileSheet(); });
   $('#goPremium')?.addEventListener('click', () => { haptic(); state.navTab='premium'; render(); });
+  $('#hapticToggle')?.addEventListener('change', (e) => {
+    localStorage.setItem('mll2_haptic', e.target.checked ? '1' : '0');
+  });
   $('#signOut')?.addEventListener('click', async () => {
     if (!confirm('להתנתק?')) return;
     haptic(20);
@@ -1827,19 +1855,41 @@ function openCrushSheet(crush) {
     </div>
     <div class="input-row">
       <label class="label">איך הכרתם</label>
-      <input class="input" id="crHowMet" value="${esc(c.how_we_met||'')}" placeholder="טינדר, חברים משותפים, עבודה..." />
+      <input class="input" id="crHowMet" value="${esc(c.how_we_met||'')}" placeholder="טינדר, חברים משותפים, עבודה, אוניברסיטה..." />
     </div>
     <div class="input-row">
       <label class="label">מצב הקשר</label>
-      <input class="input" id="crStatus" value="${esc(c.relationship_status||'')}" placeholder="זרים, חברים, מדברים, יוצאים..." />
+      <select class="input" id="crStatus">
+        <option value="">לא צוין</option>
+        <option value="זרים - שיחה ראשונה" ${c.relationship_status==='זרים - שיחה ראשונה'?'selected':''}>זרים - שיחה ראשונה</option>
+        <option value="מתחילים לדבר" ${c.relationship_status==='מתחילים לדבר'?'selected':''}>מתחילים לדבר</option>
+        <option value="מכירים, יש התעניינות" ${c.relationship_status==='מכירים, יש התעניינות'?'selected':''}>מכירים, יש התעניינות</option>
+        <option value="יוצאים לדייטים" ${c.relationship_status==='יוצאים לדייטים'?'selected':''}>יוצאים לדייטים</option>
+        <option value="זוגיות" ${c.relationship_status==='זוגיות'?'selected':''}>זוגיות</option>
+        <option value="חברים רוצה יותר" ${c.relationship_status==='חברים רוצה יותר'?'selected':''}>חברים רוצה יותר</option>
+      </select>
+    </div>
+    <div class="input-row">
+      <label class="label">עד כמה הוא/היא מגיב/ה</label>
+      <select class="input" id="crInterest">
+        <option value="">לא יודע/ת</option>
+        <option value="מגיב/ה מהר ונראה מתעניין/ת" ${c.about?.includes('מגיב/ה מהר')?'selected':''}>מגיב/ה מהר ונראה מתעניין/ת</option>
+        <option value="מגיב/ה לאט, קצר/ה" ${c.about?.includes('מגיב/ה לאט')?'selected':''}>מגיב/ה לאט, קצר/ה</option>
+        <option value="לא ברור, מעורב/ת" ${c.about?.includes('לא ברור')?'selected':''}>לא ברור, מעורב/ת</option>
+        <option value="לא מגיב/ה הרבה, צריך/ה להוציא" ${c.about?.includes('לא מגיב/ה הרבה')?'selected':''}>לא מגיב/ה הרבה, צריך/ה להוציא</option>
+      </select>
+    </div>
+    <div class="input-row">
+      <label class="label">איך הוא/היא כותב/ת</label>
+      <input class="input" id="crTexting" value="${esc(c.notes?.match(/כתיבה: (.+?)(\n|$)/)?.[1]||'')}" placeholder="הומוריסט/ית, רציני/ת, אמוג'ים, קצר/ה..." />
     </div>
     <div class="input-row">
       <label class="label">קצת עליו/עליה</label>
-      <textarea class="input" id="crAbout" placeholder="עיסוק, תחביבים, אופי...">${esc(c.about||'')}</textarea>
+      <textarea class="input" id="crAbout" placeholder="עיסוק, תחביבים, אופי בולט, משהו שאמר/ה שזכרת...">${esc(c.about?.replace(/\n?מגיב\/ה.+/,'').replace(/\n?לא ברור.+/,'').trim()||'')}</textarea>
     </div>
     <div class="input-row">
-      <label class="label">רגעים והערות</label>
-      <textarea class="input" id="crNotes" placeholder="דברים שצריך לזכור על הצ'אט...">${esc(c.notes||'')}</textarea>
+      <label class="label">על מה דיברתם לאחרונה</label>
+      <textarea class="input" id="crNotes" placeholder="נושא השיחה האחרונה, משהו שהבטחתם להמשיך...">${esc(c.notes?.replace(/כתיבה: .+?\n?/,'').trim()||'')}</textarea>
     </div>
     <button class="btn btn-primary" id="crSave">💾 שמור</button>
   `);
@@ -1849,15 +1899,19 @@ function openCrushSheet(crush) {
     haptic();
     $('#crSave').disabled = true;
     try {
+      const texting = $('#crTexting').value.trim();
+      const interest = $('#crInterest').value;
+      const aboutParts = [$('#crAbout').value.trim(), interest].filter(Boolean);
+      const notesParts = [texting ? `כתיבה: ${texting}` : '', $('#crNotes').value.trim()].filter(Boolean);
       await saveCrush({
         id: c.id,
         name,
         age: parseInt($('#crAge').value) || null,
         gender: $('#crGender').value || null,
         how_we_met: $('#crHowMet').value.trim() || null,
-        relationship_status: $('#crStatus').value.trim() || null,
-        about: $('#crAbout').value.trim() || null,
-        notes: $('#crNotes').value.trim() || null,
+        relationship_status: $('#crStatus').value || null,
+        about: aboutParts.join('\n') || null,
+        notes: notesParts.join('\n') || null,
       });
       closeSheet();
       render();
