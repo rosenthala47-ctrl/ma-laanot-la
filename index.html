@@ -148,7 +148,7 @@ button, input, textarea, select { font-family:inherit; color:inherit; }
   padding:8px 12px calc(8px + var(--safe-bottom));
   background:rgba(7,5,15,0.85); backdrop-filter:blur(24px);
   border-top:1px solid var(--stroke);
-  display:grid; grid-template-columns:repeat(4, 1fr);
+  display:grid; grid-template-columns:repeat(5, 1fr);
   z-index:50;
 }
 .nav-item {
@@ -771,6 +771,220 @@ select.input {
 .toggle-switch input:checked + .toggle-track { background:var(--pink); }
 .toggle-switch input:checked + .toggle-track::before { transform:translateX(18px); }
 
+/* =================== COACH =================== */
+.coach-hero {
+  text-align:center; padding:6px 4px 14px;
+}
+.coach-hero .coach-emoji {
+  font-size:48px; margin-bottom:8px;
+  filter:drop-shadow(0 0 30px rgba(154,46,255,0.45));
+  animation:logoFloat 5s ease-in-out infinite;
+}
+.coach-hero .coach-title {
+  font-size:22px; font-weight:900;
+  background:var(--grad-2); -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.coach-hero .coach-sub {
+  font-size:13px; color:var(--text-3); margin-top:4px;
+}
+.coach-textarea {
+  width:100%; min-height:170px; resize:none;
+  background:var(--surface); border:1.5px solid var(--stroke);
+  border-radius:18px; padding:14px;
+  font:inherit; color:var(--text); font-size:14px; line-height:1.55;
+  direction:rtl; outline:none; transition:border-color 0.2s;
+}
+.coach-textarea:focus { border-color:var(--purple); }
+.coach-textarea::placeholder { color:var(--text-3); }
+.coach-actions { display:flex; gap:8px; margin-top:10px; }
+.coach-analyze {
+  flex:1; padding:16px; border:none; border-radius:18px;
+  background:var(--grad-2); color:white; font-weight:900; font-size:15px;
+  cursor:pointer; transition:transform 0.2s var(--spring);
+  box-shadow:0 10px 30px rgba(154,46,255,0.4);
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.coach-analyze:active { transform:scale(0.96); }
+.coach-analyze:disabled { opacity:0.6; cursor:wait; }
+.coach-emergency-btn {
+  width:100%; padding:18px; border:none; border-radius:18px;
+  background:linear-gradient(135deg, #ff2e93 0%, #ff5e1a 100%);
+  color:white; font-weight:900; font-size:16px;
+  cursor:pointer; transition:transform 0.2s var(--spring);
+  box-shadow:0 14px 38px rgba(255,46,147,0.45);
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  margin:14px 0 4px;
+  position:relative; overflow:hidden;
+}
+.coach-emergency-btn::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
+  transform:translateX(-100%); animation:shine 2.4s infinite;
+}
+.coach-emergency-btn:active { transform:scale(0.97); }
+.coach-emergency-btn .pulse-dot {
+  width:10px; height:10px; border-radius:50%; background:#fff;
+  animation:pulseDot 1.2s ease-in-out infinite;
+}
+@keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(1.4);} }
+
+.coach-analyzing {
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  padding:50px 20px;
+}
+.coach-analyzing .brain {
+  font-size:60px; animation:brainPulse 1.4s ease-in-out infinite;
+  filter:drop-shadow(0 0 30px rgba(154,46,255,0.7));
+}
+@keyframes brainPulse {
+  0%,100% { transform:scale(1) rotate(-3deg); }
+  50% { transform:scale(1.15) rotate(3deg); }
+}
+.coach-analyzing .stage {
+  font-size:14px; color:var(--text-2); font-weight:700;
+  letter-spacing:0.5px;
+}
+.coach-analyzing .dots span {
+  display:inline-block; width:6px; height:6px; margin:0 2px;
+  border-radius:50%; background:var(--purple);
+  animation:dotJump 1.2s infinite;
+}
+.coach-analyzing .dots span:nth-child(2) { animation-delay:0.15s; background:var(--pink); }
+.coach-analyzing .dots span:nth-child(3) { animation-delay:0.3s; background:var(--cyan); }
+@keyframes dotJump { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+
+.interest-meter {
+  background:var(--surface); border:1.5px solid var(--stroke);
+  border-radius:22px; padding:20px 18px;
+  display:flex; align-items:center; gap:18px;
+}
+.interest-ring {
+  --pct:50; --color:var(--purple);
+  width:90px; height:90px; flex-shrink:0;
+  border-radius:50%;
+  background:conic-gradient(var(--color) calc(var(--pct)*1%), rgba(255,255,255,0.06) 0);
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.interest-ring::before {
+  content:''; position:absolute; inset:8px; border-radius:50%; background:var(--surface);
+}
+.interest-ring .pct {
+  position:relative; font-weight:900; font-size:22px;
+  background:var(--grad-2); -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.interest-info { flex:1; min-width:0; }
+.interest-info .label { font-size:11px; color:var(--text-3); font-weight:700; letter-spacing:0.5px; }
+.interest-info .tone { font-size:17px; font-weight:800; margin-top:2px; }
+.interest-info .reason { font-size:12.5px; color:var(--text-2); margin-top:6px; line-height:1.5; }
+
+.signal-grid { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.signal-chip {
+  background:rgba(154,46,255,0.12); color:var(--text);
+  border:1px solid rgba(154,46,255,0.25);
+  padding:6px 10px; border-radius:12px;
+  font-size:12px; font-weight:600;
+}
+
+.reply-card {
+  background:var(--surface); border:1.5px solid var(--stroke);
+  border-radius:18px; padding:14px;
+  margin-bottom:10px; transition:transform 0.2s var(--spring);
+}
+.reply-card:active { transform:scale(0.99); }
+.reply-card .reply-head {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:8px;
+}
+.reply-card .reply-style {
+  font-size:12px; font-weight:800; color:var(--text-2);
+  display:flex; align-items:center; gap:5px;
+  text-transform:uppercase; letter-spacing:0.5px;
+}
+.reply-card .reply-text {
+  font-size:14.5px; line-height:1.55; color:var(--text);
+}
+.reply-card .reply-actions {
+  display:flex; gap:6px; margin-top:10px;
+}
+.reply-card .reply-actions button {
+  flex:1; padding:8px; border:none; border-radius:10px;
+  background:var(--surface-2); color:var(--text-2);
+  font-size:12px; font-weight:700; cursor:pointer;
+  transition:all 0.2s;
+}
+.reply-card .reply-actions button:active { transform:scale(0.95); background:var(--purple); color:white; }
+
+.timing-card {
+  background:linear-gradient(135deg, rgba(46,206,255,0.12), rgba(154,46,255,0.12));
+  border:1.5px solid rgba(46,206,255,0.25);
+  border-radius:18px; padding:14px 16px;
+  display:flex; gap:12px; align-items:flex-start;
+}
+.timing-card .clock { font-size:30px; flex-shrink:0; }
+.timing-card .info { flex:1; }
+.timing-card .label { font-size:11px; color:var(--text-3); font-weight:700; letter-spacing:0.5px; }
+.timing-card .action { font-size:16px; font-weight:900; margin-top:2px; }
+.timing-card .reason { font-size:12.5px; color:var(--text-2); margin-top:4px; line-height:1.5; }
+
+.tips-list { list-style:none; padding:0; margin:8px 0 0; }
+.tips-list li {
+  font-size:13px; color:var(--text-2); line-height:1.55;
+  padding:8px 12px; background:var(--surface-2); border-radius:12px;
+  margin-bottom:6px;
+}
+
+.coach-section-title {
+  font-size:11px; color:var(--text-3); font-weight:800;
+  text-transform:uppercase; letter-spacing:1px;
+  margin:14px 0 8px; padding-right:4px;
+}
+
+.coach-history-item {
+  background:var(--surface); border:1px solid var(--stroke);
+  border-radius:14px; padding:10px 12px;
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:6px; cursor:pointer;
+  transition:transform 0.2s;
+}
+.coach-history-item:active { transform:scale(0.98); }
+.coach-history-item .h-pct {
+  width:40px; height:40px; flex-shrink:0;
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:13px;
+  background:var(--grad-2); color:white;
+}
+.coach-history-item .h-info { flex:1; min-width:0; }
+.coach-history-item .h-preview {
+  font-size:13px; font-weight:700;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.coach-history-item .h-date { font-size:11px; color:var(--text-3); margin-top:1px; }
+
+.lock-overlay {
+  text-align:center; padding:60px 24px;
+}
+.lock-overlay .lock-emoji {
+  font-size:64px; margin-bottom:12px;
+  filter:drop-shadow(0 0 30px rgba(255,193,7,0.4));
+}
+.lock-overlay .lock-title {
+  font-size:22px; font-weight:900; margin-bottom:6px;
+  background:linear-gradient(135deg, #ffd700, #ff8a00);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.lock-overlay .lock-sub {
+  font-size:14px; color:var(--text-2); line-height:1.6; margin-bottom:18px;
+}
+.lock-features {
+  text-align:right; background:var(--surface); border:1px solid var(--stroke);
+  border-radius:16px; padding:14px 16px; margin-bottom:14px;
+}
+.lock-features li {
+  list-style:none; padding:6px 0; font-size:13.5px;
+  display:flex; align-items:center; gap:8px;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
@@ -802,9 +1016,9 @@ const { createClient } = supabase;
 const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const TIER_LIMITS = {
-  free: { dailyGenerations:5, crushProfiles:1, hasOpener:false, hasPhrase:false, ads:true, lockedStyles:['flirty','cold'] },
-  plus: { dailyGenerations:50, crushProfiles:5, hasOpener:false, hasPhrase:true, ads:false, lockedStyles:[] },
-  pro:  { dailyGenerations:Infinity, crushProfiles:Infinity, hasOpener:true, hasPhrase:true, ads:false, lockedStyles:[] },
+  free: { dailyGenerations:5, crushProfiles:1, hasOpener:false, hasPhrase:false, hasCoach:false, ads:true, lockedStyles:['flirty','cold'] },
+  plus: { dailyGenerations:50, crushProfiles:5, hasOpener:false, hasPhrase:true, hasCoach:false, ads:false, lockedStyles:[] },
+  pro:  { dailyGenerations:Infinity, crushProfiles:Infinity, hasOpener:true, hasPhrase:true, hasCoach:true, ads:false, lockedStyles:[] },
 };
 const TIER_LABELS = {
   free: { name:'חינם', emoji:'🆓' },
@@ -835,11 +1049,17 @@ const state = {
   imageBase64: null,
   imageMediaType: null,
   authMode: 'login',
-  navTab: 'home',          // home | profiles | premium | settings
+  navTab: 'home',          // home | coach | profiles | premium | settings
   screen: 'boot',          // boot | auth | onboardIntro | onboardProfile | main
   onboardIntroIdx: 0,
   billingCycle: 'yearly',
   busy: false,
+  coachInput: '',
+  coachAnalyzing: false,
+  coachResult: null,
+  emergencyText: '',
+  emergencyBusy: false,
+  emergencyResult: null,
 };
 
 // ---------- helpers ----------
@@ -1125,6 +1345,7 @@ function renderMain() {
     ${renderTopbar()}
     <div class="screen-scroll" id="mainScroll">
       ${state.navTab === 'home' ? renderHome()
+        : state.navTab === 'coach' ? renderCoach()
         : state.navTab === 'profiles' ? renderProfiles()
         : state.navTab === 'premium' ? renderPremium()
         : renderSettings()}
@@ -1147,6 +1368,7 @@ function renderTopbar() {
 function renderBottomNav() {
   const items = [
     { id:'home', icon:'🏠', label:'בית' },
+    { id:'coach', icon:'🧠', label:'קואצ\'' },
     { id:'profiles', icon:'💕', label:'פרופילים' },
     { id:'premium', icon:'💎', label:'פרימיום' },
     { id:'settings', icon:'👤', label:'אני' },
@@ -1293,6 +1515,204 @@ function renderInputArea() {
           ${isImg && !state.imageBase64 ? `<button class="input-action" id="backToText">↩ חזור לטקסט</button>` : ''}
         </div>
       </div>
+    </div>
+  `;
+}
+
+// ---- COACH tab ----
+const COACH_STYLES = [
+  { id:'funny', label:'מצחיק', emoji:'😂', color:'#ffd166' },
+  { id:'confident', label:'בטוח', emoji:'😎', color:'#ff2e93' },
+  { id:'flirty', label:'פלרטטני', emoji:'😏', color:'#ff5e1a' },
+  { id:'mysterious', label:'מסתורי', emoji:'🌙', color:'#9a2eff' },
+  { id:'chill', label:'צ\'יל', emoji:'🌊', color:'#2eceff' },
+];
+
+function getCoachHistory() {
+  if (!state.user?.id) return [];
+  try { return JSON.parse(localStorage.getItem(`mll2_coach_history_${state.user.id}`) || '[]'); } catch { return []; }
+}
+function saveCoachHistory(entry) {
+  if (!state.user?.id) return;
+  const hist = getCoachHistory();
+  hist.unshift({ ...entry, ts: Date.now() });
+  localStorage.setItem(`mll2_coach_history_${state.user.id}`, JSON.stringify(hist.slice(0, 10)));
+}
+function formatRelTime(ts) {
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff/60000), h = Math.floor(diff/3600000), d = Math.floor(diff/86400000);
+  if (d > 0) return `לפני ${d} ימים`;
+  if (h > 0) return `לפני ${h} שעות`;
+  if (m > 0) return `לפני ${m} דק'`;
+  return 'עכשיו';
+}
+
+function renderCoach() {
+  const limits = getLimits();
+  if (!limits.hasCoach) {
+    return `
+      <div class="lock-overlay">
+        <div class="lock-emoji">🧠</div>
+        <div class="lock-title">AI Chat Coach</div>
+        <div class="lock-sub">המאמן האישי שלך לצ'אטים — מנתח את השיחה, מודד רמת עניין, ונותן ייעוץ מקצועי לכל הודעה.</div>
+        <ul class="lock-features">
+          <li>📊 ניתוח רמת עניין של הצד השני</li>
+          <li>🎯 5 סגנונות תשובה לכל סיטואציה</li>
+          <li>⏰ ייעוץ תזמון — מתי לענות, מתי לחכות</li>
+          <li>🚨 מצב חירום — תשובה מהירה כשצריך</li>
+          <li>💡 טיפים ואזהרות אישיות</li>
+        </ul>
+        <button class="btn btn-primary" id="coachUpgrade">💎 שדרג ל-Pro לפתיחת הקואצ'</button>
+      </div>
+    `;
+  }
+
+  if (state.coachAnalyzing) {
+    return `
+      <div class="coach-analyzing">
+        <div class="brain">🧠</div>
+        <div class="stage">${state.coachStage || 'קורא את השיחה'}</div>
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:6px;">מנתח טון, רמת עניין, ותזמון...</div>
+      </div>
+    `;
+  }
+
+  if (state.coachResult) return renderCoachResult();
+
+  const hist = getCoachHistory();
+  const sel = state.crushes.find(c => c.id === state.selectedCrushId);
+
+  return `
+    <div style="padding-top:6px;">
+      <div class="coach-hero">
+        <div class="coach-emoji">🧠</div>
+        <div class="coach-title">AI Chat Coach</div>
+        <div class="coach-sub">הדבק שיחה ואנתח אותה בשבילך</div>
+      </div>
+
+      ${sel ? `
+        <div class="crush-row" id="coachCrushPicker" style="margin-bottom:12px;">
+          <div class="crush-avatar">${esc(sel.name.charAt(0))}</div>
+          <div class="crush-info">
+            <div class="crush-name">מנתח שיחה עם ${esc(sel.name)}</div>
+            <div class="crush-meta">לחץ לשינוי</div>
+          </div>
+          <div class="crush-chevron">‹</div>
+        </div>
+      ` : `
+        <div class="crush-row" id="coachCrushPicker" style="margin-bottom:12px;">
+          <div class="crush-avatar">+</div>
+          <div class="crush-info">
+            <div class="crush-name">בחר פרופיל (אופציונלי)</div>
+            <div class="crush-meta">לקבל ניתוח מדויק יותר</div>
+          </div>
+          <div class="crush-chevron">‹</div>
+        </div>
+      `}
+
+      <textarea class="coach-textarea" id="coachInput" placeholder="הדבק כאן את השיחה...
+
+לדוגמה:
+אני: היי מה קורה
+היא: היייי, הכל טוב אצלך?
+אני: על הכיף, חשבתי עליך
+היא: 😏 כן? למה פתאום
+
+(תכלול את 2 הצדדים — מי שאתה ומי שהוא/היא)">${esc(state.coachInput)}</textarea>
+
+      <div class="coach-actions">
+        <button class="coach-analyze" id="coachAnalyze">
+          <span>✨</span><span>נתח את השיחה</span>
+        </button>
+      </div>
+
+      <button class="coach-emergency-btn" id="emergencyBtn">
+        <span class="pulse-dot"></span>
+        <span>🚨 צריך תשובה עכשיו!</span>
+      </button>
+
+      ${hist.length > 0 ? `
+        <div class="coach-section-title">ניתוחים אחרונים</div>
+        ${hist.map((h, idx) => `
+          <div class="coach-history-item" data-idx="${idx}">
+            <div class="h-pct" style="background:conic-gradient(${h.interest>=70?'#2eceff':h.interest>=40?'#9a2eff':'#ff2e93'} ${h.interest}%, rgba(255,255,255,0.1) 0);display:flex;align-items:center;justify-content:center;">
+              <div style="background:var(--surface);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;">${h.interest}%</div>
+            </div>
+            <div class="h-info">
+              <div class="h-preview">${esc((h.preview||'').slice(0, 50))}${(h.preview||'').length>50?'...':''}</div>
+              <div class="h-date">${formatRelTime(h.ts)} · ${esc(h.tone||'')}</div>
+            </div>
+          </div>
+        `).join('')}
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderCoachResult() {
+  const r = state.coachResult;
+  const interest = r.interest ?? 50;
+  const color = interest >= 70 ? '#2eceff' : interest >= 40 ? '#9a2eff' : '#ff2e93';
+  return `
+    <div style="padding-top:6px;">
+      <div class="interest-meter">
+        <div class="interest-ring" style="--pct:${interest};--color:${color};">
+          <div class="pct">${interest}%</div>
+        </div>
+        <div class="interest-info">
+          <div class="label">רמת עניין</div>
+          <div class="tone">${esc(r.tone || 'לא ידוע')}</div>
+          <div class="reason">${esc(r.interestReason || '')}</div>
+        </div>
+      </div>
+
+      ${r.signals?.length ? `
+        <div class="coach-section-title">סיגנלים שזיהיתי</div>
+        <div class="signal-grid">
+          ${r.signals.map(s => `<span class="signal-chip">${esc(s)}</span>`).join('')}
+        </div>
+      ` : ''}
+
+      ${r.timing ? `
+        <div class="coach-section-title">תזמון</div>
+        <div class="timing-card">
+          <div class="clock">⏰</div>
+          <div class="info">
+            <div class="label">המלצה</div>
+            <div class="action">${esc(r.timing.action || '')}</div>
+            <div class="reason">${esc(r.timing.reason || '')}</div>
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="coach-section-title">5 אפשרויות תשובה</div>
+      ${COACH_STYLES.map(s => {
+        const txt = r.replies?.[s.id];
+        if (!txt) return '';
+        return `
+          <div class="reply-card" data-text="${esc(txt)}">
+            <div class="reply-head">
+              <div class="reply-style"><span style="font-size:16px;">${s.emoji}</span> ${s.label}</div>
+            </div>
+            <div class="reply-text">${esc(txt)}</div>
+            <div class="reply-actions">
+              <button class="copy-reply" data-text="${esc(txt)}">📋 העתק</button>
+              <button class="wa-reply" data-text="${esc(txt)}">📤 WhatsApp</button>
+              <button class="share-reply" data-text="${esc(txt)}">↗️ שתף</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+
+      ${r.tips?.length ? `
+        <div class="coach-section-title">טיפים אישיים</div>
+        <ul class="tips-list">
+          ${r.tips.map(t => `<li>💡 ${esc(t)}</li>`).join('')}
+        </ul>
+      ` : ''}
+
+      <button class="btn btn-secondary" id="coachNew" style="margin-top:14px;">🔄 ניתוח חדש</button>
     </div>
   `;
 }
@@ -1649,6 +2069,41 @@ function attachHandlers() {
   }));
   $$('[data-buy]').forEach(b => b.addEventListener('click', () => handleBuy(b.dataset.buy, b)));
 
+  // ---- coach ----
+  $('#coachUpgrade')?.addEventListener('click', () => { haptic(); state.navTab='premium'; render(); });
+  $('#coachCrushPicker')?.addEventListener('click', () => { haptic(); state.navTab='profiles'; render(); });
+  $('#coachInput')?.addEventListener('input', (e) => { state.coachInput = e.target.value; });
+  $('#coachAnalyze')?.addEventListener('click', handleCoachAnalyze);
+  $('#emergencyBtn')?.addEventListener('click', openEmergencySheet);
+  $('#coachNew')?.addEventListener('click', () => {
+    haptic();
+    state.coachResult = null;
+    state.coachInput = '';
+    render();
+  });
+  $$('.coach-history-item').forEach(el => el.addEventListener('click', () => {
+    haptic();
+    const hist = getCoachHistory();
+    const item = hist[parseInt(el.dataset.idx)];
+    if (item?.result) {
+      state.coachResult = item.result;
+      render();
+    }
+  }));
+  $$('.copy-reply').forEach(b => b.addEventListener('click', async (e) => {
+    e.stopPropagation(); haptic();
+    try { await navigator.clipboard.writeText(b.dataset.text); showToast('הועתק ✓', 'success'); } catch {}
+  }));
+  $$('.wa-reply').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation(); haptic();
+    window.open(`https://wa.me/?text=${encodeURIComponent(b.dataset.text)}`, '_blank');
+  }));
+  $$('.share-reply').forEach(b => b.addEventListener('click', async (e) => {
+    e.stopPropagation(); haptic();
+    if (navigator.share) { try { await navigator.share({ text: b.dataset.text }); } catch {} }
+    else { try { await navigator.clipboard.writeText(b.dataset.text); showToast('הועתק', 'success'); } catch {} }
+  }));
+
   // ---- settings ----
   $('#editProfile')?.addEventListener('click', () => { haptic(); openProfileSheet(); });
   $('#goPremium')?.addEventListener('click', () => { haptic(); state.navTab='premium'; render(); });
@@ -1806,6 +2261,133 @@ async function handleBuy(targetTier, btn) {
   btn.disabled = true; btn.textContent = 'פותח תשלום...';
   const p = new URLSearchParams({ prefilled_email: state.user.email || '', client_reference_id: state.user.id });
   window.location.href = `${stripeUrl}?${p.toString()}`;
+}
+
+// ===================================================================
+// COACH FLOW
+// ===================================================================
+
+async function handleCoachAnalyze() {
+  const text = (state.coachInput || $('#coachInput')?.value || '').trim();
+  if (text.length < 20) { haptic(20); showToast('הדבק שיחה ארוכה יותר (לפחות 20 תווים)', 'error'); return; }
+  if (state.coachAnalyzing) return;
+
+  haptic();
+  state.coachAnalyzing = true;
+  state.coachStage = 'קורא את השיחה';
+  render();
+
+  const stages = ['מנתח טון ושפה', 'מודד רמת עניין', 'חושב על תשובות', 'בודק תזמון'];
+  let stageIdx = 0;
+  const stageInterval = setInterval(() => {
+    if (stageIdx < stages.length) {
+      state.coachStage = stages[stageIdx++];
+      const el = document.querySelector('.coach-analyzing .stage');
+      if (el) el.textContent = state.coachStage;
+    }
+  }, 1400);
+
+  try {
+    const crush = state.crushes.find(c => c.id === state.selectedCrushId) || null;
+    const payload = {
+      mode: 'coach',
+      text,
+      crush, crushId: state.selectedCrushId,
+      userGender: state.profile?.gender || null,
+      userName: state.user?.user_metadata?.full_name || null,
+    };
+    const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      let m = `שגיאה (${r.status})`;
+      try { const j = await r.json(); if (j.error) m += `: ${j.error}`; } catch {}
+      throw new Error(m);
+    }
+    const result = await r.json();
+    clearInterval(stageInterval);
+    state.coachAnalyzing = false;
+    state.coachResult = result;
+    saveCoachHistory({
+      preview: text.slice(0, 80),
+      interest: result.interest,
+      tone: result.tone,
+      result
+    });
+    bumpStreak();
+    haptic(15);
+    render();
+  } catch (err) {
+    clearInterval(stageInterval);
+    state.coachAnalyzing = false;
+    render();
+    showToast(err.message || 'משהו השתבש', 'error');
+  }
+}
+
+function openEmergencySheet() {
+  haptic(20);
+  openSheet(`
+    <div class="sheet-title">🚨 מצב חירום</div>
+    <div class="sheet-sub">הדבק את ההודעה האחרונה שקיבלת — אני נותן 5 תשובות מהירות</div>
+    <div class="input-row">
+      <textarea class="input" id="emInput" placeholder="ההודעה שקיבלת עכשיו..." style="min-height:90px;"></textarea>
+    </div>
+    <button class="btn btn-primary" id="emGo">⚡ תן לי תשובות עכשיו</button>
+    <div id="emResults" style="margin-top:14px;"></div>
+  `);
+  setTimeout(() => $('#emInput')?.focus(), 200);
+  $('#emGo')?.addEventListener('click', async () => {
+    const text = $('#emInput').value.trim();
+    if (!text) { showToast('הדבק את ההודעה', 'error'); return; }
+    haptic();
+    const btn = $('#emGo');
+    btn.disabled = true; btn.textContent = '⚡ מייצר...';
+    try {
+      const crush = state.crushes.find(c => c.id === state.selectedCrushId) || null;
+      const payload = {
+        mode:'emergency', text, crush,
+        userGender: state.profile?.gender || null,
+        userName: state.user?.user_metadata?.full_name || null,
+      };
+      const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+        body: JSON.stringify(payload)
+      });
+      if (!r.ok) {
+        let m = `שגיאה (${r.status})`;
+        try { const j = await r.json(); if (j.error) m += `: ${j.error}`; } catch {}
+        throw new Error(m);
+      }
+      const d = await r.json();
+      if (!Array.isArray(d.answers)) throw new Error('תשובה לא תקינה');
+      const labels = ['😂 מצחיק', '😎 בטוח', '😏 פלרטטני', '🌙 מסתורי', '🌊 צ\'יל'];
+      $('#emResults').innerHTML = d.answers.map((a, i) => `
+        <div class="reply-card">
+          <div class="reply-head"><div class="reply-style">${labels[i] || ''}</div></div>
+          <div class="reply-text">${esc(a)}</div>
+          <div class="reply-actions">
+            <button class="em-copy" data-text="${esc(a)}">📋 העתק</button>
+            <button class="em-wa" data-text="${esc(a)}">📤 WhatsApp</button>
+          </div>
+        </div>
+      `).join('');
+      $$('#emResults .em-copy').forEach(b => b.addEventListener('click', async () => {
+        haptic(); try { await navigator.clipboard.writeText(b.dataset.text); showToast('הועתק ✓', 'success'); } catch {}
+      }));
+      $$('#emResults .em-wa').forEach(b => b.addEventListener('click', () => {
+        haptic(); window.open(`https://wa.me/?text=${encodeURIComponent(b.dataset.text)}`, '_blank');
+      }));
+      btn.disabled = false; btn.textContent = '⚡ עוד תשובות';
+      bumpStreak();
+    } catch (err) {
+      btn.disabled = false; btn.textContent = '⚡ נסה שוב';
+      showToast(err.message || 'שגיאה', 'error');
+    }
+  });
 }
 
 // ===================================================================
