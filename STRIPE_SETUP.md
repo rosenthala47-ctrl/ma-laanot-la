@@ -27,14 +27,14 @@
 
 | שם המוצר            | מחיר | חיוב   | Lookup key (אופציונלי) |
 |---------------------|------|--------|------------------------|
-| מה לענות לה – Plus חודשי   | $7   | Monthly | `plus_monthly`         |
-| מה לענות לה – Plus שנתי    | $60  | Yearly  | `plus_yearly`          |
-| מה לענות לה – Pro חודשי    | $10  | Monthly | `pro_monthly`          |
-| מה לענות לה – Pro שנתי     | $99  | Yearly  | `pro_yearly`           |
+| מה לענות לה – Plus חודשי   | ₪24.90 | Monthly | `plus_monthly`         |
+| מה לענות לה – Plus שנתי    | ₪249   | Yearly  | `plus_yearly`          |
+| מה לענות לה – Pro חודשי    | ₪59.90 | Monthly | `pro_monthly`          |
+| מה לענות לה – Pro שנתי     | ₪599   | Yearly  | `pro_yearly`           |
 
 לכל מוצר:
 - **Recurring** (לא One-off)
-- מטבע: USD
+- מטבע: ILS (שקל ישראלי)
 - אחרי שמירה, **העתק את ה-Price ID** (`price_1A...`) – נצטרך אותו
 
 ---

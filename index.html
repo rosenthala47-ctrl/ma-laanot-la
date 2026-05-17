@@ -424,6 +424,7 @@ select.input {
 }
 .input-action:active { transform:scale(0.94); }
 .input-action.attached { color:var(--cyan); border-color:var(--cyan); }
+.input-action.locked { color:var(--text-3); opacity:0.7; }
 
 /* Hidden file input */
 .file-hidden { position:absolute; opacity:0; width:0; height:0; }
@@ -985,6 +986,248 @@ select.input {
   display:flex; align-items:center; gap:8px;
 }
 
+/* =================== PAYWALL / PREMIUM REDESIGN =================== */
+.pw-hero {
+  text-align:center; padding:6px 4px 18px;
+}
+.pw-hero .pw-emoji {
+  font-size:54px; margin-bottom:8px;
+  filter:drop-shadow(0 0 30px rgba(255,46,147,0.5));
+  animation:logoFloat 4s ease-in-out infinite;
+}
+.pw-hero .pw-title {
+  font-size:26px; font-weight:900; line-height:1.15;
+  background:linear-gradient(135deg, #fff 0%, #c8c8d8 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.pw-hero .pw-sub {
+  font-size:14px; color:var(--text-2); margin-top:6px; line-height:1.5;
+}
+.pw-cycle {
+  display:flex; background:var(--surface); border:1.5px solid var(--stroke);
+  border-radius:14px; padding:4px; margin:0 auto 16px; gap:4px; max-width:300px;
+}
+.pw-cycle button {
+  flex:1; padding:10px 8px; border:none; background:transparent;
+  color:var(--text-3); font-weight:800; font-size:13px;
+  border-radius:11px; cursor:pointer; transition:all 0.25s var(--ease);
+  position:relative; display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.pw-cycle button.active {
+  background:var(--grad-2); color:white;
+  box-shadow:0 6px 18px rgba(154,46,255,0.35);
+}
+.pw-cycle button .save-tag {
+  font-size:9px; font-weight:900; background:#1bd97a; color:#000;
+  padding:2px 5px; border-radius:6px; line-height:1;
+}
+
+.pw-card {
+  position:relative; background:var(--surface);
+  border:1.5px solid var(--stroke); border-radius:22px;
+  padding:22px 18px; margin-bottom:14px;
+  transition:transform 0.3s var(--spring);
+}
+.pw-card.recommended {
+  border-color:transparent;
+  background:linear-gradient(180deg, rgba(255,46,147,0.08), rgba(154,46,255,0.08)), var(--surface);
+  box-shadow:0 18px 50px rgba(154,46,255,0.18);
+  position:relative;
+}
+.pw-card.recommended::before {
+  content:''; position:absolute; inset:-1.5px; border-radius:22px;
+  padding:1.5px; background:var(--grad-2);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  pointer-events:none;
+}
+.pw-card.current { opacity:0.7; }
+.pw-card .pw-tag {
+  position:absolute; top:-10px; right:18px;
+  font-size:10px; font-weight:900; padding:5px 10px;
+  border-radius:8px; letter-spacing:0.5px;
+  background:var(--grad-1); color:white;
+  box-shadow:0 4px 12px rgba(255,46,147,0.4);
+}
+.pw-card .pw-tag.now {
+  background:#1bd97a; color:#000; box-shadow:0 4px 12px rgba(27,217,122,0.4);
+}
+.pw-card .pw-name {
+  font-size:13px; font-weight:800; letter-spacing:1px;
+  color:var(--text-3); text-transform:uppercase;
+  display:flex; align-items:center; gap:6px;
+}
+.pw-card .pw-tier-title {
+  font-size:24px; font-weight:900; margin-top:4px;
+}
+.pw-card .pw-price {
+  display:flex; align-items:baseline; gap:6px; margin:10px 0 4px;
+}
+.pw-card .pw-price .amount {
+  font-size:36px; font-weight:900;
+  background:var(--grad-2); -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.pw-card .pw-price .per { font-size:13px; color:var(--text-3); font-weight:600; }
+.pw-card .pw-yearly-hint {
+  font-size:12px; color:var(--text-3); margin-top:-2px; margin-bottom:8px;
+}
+.pw-card .pw-trial {
+  display:inline-block; font-size:11px; font-weight:800;
+  background:rgba(46,206,255,0.15); color:var(--cyan);
+  border:1px solid rgba(46,206,255,0.3);
+  padding:5px 10px; border-radius:10px; margin-bottom:14px;
+}
+.pw-feats { list-style:none; padding:0; margin:10px 0 16px; }
+.pw-feats li {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:7px 0; font-size:13.5px; line-height:1.45;
+  color:var(--text);
+}
+.pw-feats li .check {
+  flex-shrink:0; width:18px; height:18px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:900; margin-top:1px;
+  background:rgba(27,217,122,0.18); color:#1bd97a;
+}
+.pw-feats li.off { color:var(--text-3); }
+.pw-feats li.off .check {
+  background:rgba(255,255,255,0.06); color:var(--text-3);
+}
+.pw-feats li .highlight {
+  color:transparent; background:var(--grad-1);
+  -webkit-background-clip:text; background-clip:text;
+  font-weight:800;
+}
+.pw-cta {
+  width:100%; padding:14px; border:none; border-radius:14px;
+  font-size:14.5px; font-weight:900; cursor:pointer;
+  transition:transform 0.2s var(--spring);
+}
+.pw-cta:active { transform:scale(0.97); }
+.pw-cta.primary {
+  background:var(--grad-2); color:white;
+  box-shadow:0 10px 28px rgba(154,46,255,0.35);
+}
+.pw-cta.ghost {
+  background:var(--surface-2); color:var(--text-2);
+}
+.pw-cta.glow {
+  background:var(--grad-1); color:white;
+  box-shadow:0 10px 28px rgba(255,46,147,0.4);
+  position:relative; overflow:hidden;
+}
+.pw-cta.glow::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+  transform:translateX(-100%); animation:shine 3s infinite;
+}
+
+.pw-trust {
+  display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+  margin:18px 0 8px;
+}
+.pw-trust .item {
+  display:flex; align-items:center; gap:6px;
+  font-size:12px; color:var(--text-2); font-weight:600;
+  background:var(--surface); border:1px solid var(--stroke);
+  padding:8px 12px; border-radius:14px;
+}
+
+/* Blurred preview for free users in Coach */
+.blurred-preview {
+  position:relative; margin-top:10px;
+}
+.blurred-preview .preview-content {
+  filter:blur(8px); user-select:none; pointer-events:none;
+  opacity:0.6;
+}
+.blurred-preview .unlock-overlay {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; padding:20px; text-align:center;
+  background:linear-gradient(180deg, transparent 0%, rgba(7,5,15,0.7) 50%, rgba(7,5,15,0.95) 100%);
+  border-radius:18px;
+}
+.blurred-preview .unlock-overlay .unlock-icon {
+  font-size:36px; filter:drop-shadow(0 0 16px rgba(255,193,7,0.5));
+}
+.blurred-preview .unlock-overlay .unlock-text {
+  font-size:14px; font-weight:800; color:var(--text);
+}
+.blurred-preview .unlock-overlay .unlock-cta {
+  padding:10px 18px; border:none; border-radius:12px;
+  background:var(--grad-1); color:white; font-weight:800; font-size:13px;
+  cursor:pointer; box-shadow:0 8px 20px rgba(255,46,147,0.4);
+}
+.blurred-preview .unlock-overlay .unlock-cta:active { transform:scale(0.96); }
+
+/* Paywall onboarding screens */
+.paywall-onb {
+  flex:1; display:flex; flex-direction:column;
+  padding:40px 24px 28px; text-align:center;
+  overflow-y:auto;
+}
+.paywall-onb .pw-onb-hero {
+  margin-bottom:14px;
+}
+.paywall-onb .pw-onb-emoji {
+  font-size:64px; margin-bottom:10px;
+  filter:drop-shadow(0 0 30px rgba(255,46,147,0.5));
+  animation:logoFloat 4s ease-in-out infinite;
+}
+.paywall-onb .pw-onb-title {
+  font-size:28px; font-weight:900; line-height:1.15;
+  background:linear-gradient(135deg, #fff, #c8c8d8);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  margin-bottom:6px;
+}
+.paywall-onb .pw-onb-sub {
+  font-size:14px; color:var(--text-2); line-height:1.55;
+}
+.value-prop-list {
+  margin:18px 0 8px;
+  display:flex; flex-direction:column; gap:10px;
+}
+.value-prop {
+  display:flex; gap:14px; align-items:flex-start;
+  background:var(--surface); border:1.5px solid var(--stroke);
+  border-radius:16px; padding:14px;
+  text-align:right;
+  animation:slideIn 0.4s var(--spring) both;
+}
+.value-prop:nth-child(1) { animation-delay:0.1s; }
+.value-prop:nth-child(2) { animation-delay:0.2s; }
+.value-prop:nth-child(3) { animation-delay:0.3s; }
+.value-prop:nth-child(4) { animation-delay:0.4s; }
+@keyframes slideIn {
+  from { opacity:0; transform:translateY(20px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.value-prop .vp-icon {
+  flex-shrink:0; font-size:28px;
+  width:50px; height:50px; border-radius:14px;
+  background:linear-gradient(135deg, rgba(255,46,147,0.15), rgba(154,46,255,0.15));
+  display:flex; align-items:center; justify-content:center;
+}
+.value-prop .vp-info { flex:1; min-width:0; }
+.value-prop .vp-title { font-weight:800; font-size:14.5px; margin-bottom:3px; }
+.value-prop .vp-desc { font-size:12.5px; color:var(--text-2); line-height:1.5; }
+
+.smart-upgrade-banner {
+  margin:14px 0;
+  padding:14px 16px; border-radius:16px;
+  background:linear-gradient(135deg, rgba(255,46,147,0.12), rgba(154,46,255,0.12));
+  border:1px solid rgba(255,46,147,0.25);
+  display:flex; align-items:center; gap:12px; cursor:pointer;
+  transition:transform 0.2s var(--spring);
+}
+.smart-upgrade-banner:active { transform:scale(0.98); }
+.smart-upgrade-banner .sub-icon { font-size:24px; }
+.smart-upgrade-banner .sub-info { flex:1; }
+.smart-upgrade-banner .sub-title { font-weight:800; font-size:13.5px; }
+.smart-upgrade-banner .sub-desc { font-size:12px; color:var(--text-2); margin-top:2px; }
+.smart-upgrade-banner .sub-arrow { font-size:18px; color:var(--pink); }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
@@ -1016,10 +1259,36 @@ const { createClient } = supabase;
 const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const TIER_LIMITS = {
-  free: { dailyGenerations:5, crushProfiles:1, hasOpener:false, hasPhrase:false, hasCoach:false, ads:true, lockedStyles:['flirty','cold'] },
-  plus: { dailyGenerations:50, crushProfiles:5, hasOpener:false, hasPhrase:true, hasCoach:false, ads:false, lockedStyles:[] },
-  pro:  { dailyGenerations:Infinity, crushProfiles:Infinity, hasOpener:true, hasPhrase:true, hasCoach:true, ads:false, lockedStyles:[] },
+  free: {
+    dailyGenerations:8, crushProfiles:1,
+    hasOpener:false, hasPhrase:false,
+    hasCoach:false, hasCoachDeep:false,
+    hasImageUpload:false, hasMemory:false, hasPriority:false,
+    ads:true,
+    lockedStyles:['flirty','romantic','cold','confident','dry'],
+  },
+  plus: {
+    dailyGenerations:80, crushProfiles:5,
+    hasOpener:true, hasPhrase:true,
+    hasCoach:true, hasCoachDeep:false,
+    hasImageUpload:false, hasMemory:false, hasPriority:false,
+    ads:false,
+    lockedStyles:[],
+  },
+  pro:  {
+    dailyGenerations:Infinity, crushProfiles:Infinity,
+    hasOpener:true, hasPhrase:true,
+    hasCoach:true, hasCoachDeep:true,
+    hasImageUpload:true, hasMemory:true, hasPriority:true,
+    ads:false,
+    lockedStyles:[],
+  },
 };
+const PRICING = {
+  plus: { monthly:24.90, yearly:249 },
+  pro:  { monthly:59.90, yearly:599 },
+};
+const fmtPrice = (n) => Number.isInteger(n) ? `₪${n}` : `₪${n.toFixed(2)}`;
 const TIER_LABELS = {
   free: { name:'חינם', emoji:'🆓' },
   plus: { name:'Plus', emoji:'⭐' },
@@ -1050,7 +1319,7 @@ const state = {
   imageMediaType: null,
   authMode: 'login',
   navTab: 'home',          // home | coach | profiles | premium | settings
-  screen: 'boot',          // boot | auth | onboardIntro | onboardProfile | main
+  screen: 'boot',          // boot | auth | onboardIntro | onboardProfile | paywall | main
   onboardIntroIdx: 0,
   billingCycle: 'yearly',
   busy: false,
@@ -1233,6 +1502,8 @@ function render() {
     html = renderOnboardIntro();
   } else if (state.screen === 'onboardProfile') {
     html = renderOnboardProfile();
+  } else if (state.screen === 'paywall') {
+    html = renderPaywallOnboarding();
   } else {
     html = renderMain();
   }
@@ -1339,6 +1610,58 @@ function renderOnboardProfile() {
   </div></div>`;
 }
 
+// ---------- PAYWALL ONBOARDING ----------
+function renderPaywallOnboarding() {
+  const name = state.user?.user_metadata?.full_name?.split(' ')[0] || '';
+  return `<div class="screen"><div class="paywall-onb">
+    <div class="pw-onb-hero">
+      <div class="pw-onb-emoji">✨</div>
+      <div class="pw-onb-title">${name?`${esc(name)}, `:''}תפגוש את החלק המעניין</div>
+      <div class="pw-onb-sub">לפני שאתה מתחיל — תראה מה מחכה לך עם הגרסה המלאה</div>
+    </div>
+
+    <div class="value-prop-list">
+      <div class="value-prop">
+        <div class="vp-icon">🧠</div>
+        <div class="vp-info">
+          <div class="vp-title">AI Coach שמנתח כל שיחה</div>
+          <div class="vp-desc">מודד רמת עניין, חושף סיגנלים שפספסת, ונותן 5 תשובות לכל מצב.</div>
+        </div>
+      </div>
+      <div class="value-prop">
+        <div class="vp-icon">⏰</div>
+        <div class="vp-info">
+          <div class="vp-title">תזמון מושלם</div>
+          <div class="vp-desc">מתי לענות, מתי לחכות, מתי לשנות נושא. AI שיודע מה עובד.</div>
+        </div>
+      </div>
+      <div class="value-prop">
+        <div class="vp-icon">🚨</div>
+        <div class="vp-info">
+          <div class="vp-title">מצב SOS</div>
+          <div class="vp-desc">לחיצה אחת — 5 תשובות מהירות בסגנונות שונים, מוכנות לשליחה.</div>
+        </div>
+      </div>
+      <div class="value-prop">
+        <div class="vp-icon">📸</div>
+        <div class="vp-info">
+          <div class="vp-title">צילום מסך = ניתוח</div>
+          <div class="vp-desc">ב-Pro: צלם את השיחה ב-WhatsApp ותן ל-AI לקרוא ולענות במקומך.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,rgba(255,46,147,0.12),rgba(154,46,255,0.12));border:1px solid rgba(255,46,147,0.25);border-radius:18px;padding:16px;text-align:center;margin:14px 0;">
+      <div style="font-size:13px;color:var(--text-3);font-weight:700;letter-spacing:0.5px;">החל מ-</div>
+      <div style="font-size:32px;font-weight:900;background:var(--grad-2);-webkit-background-clip:text;background-clip:text;color:transparent;margin:4px 0;">₪24.90 / חודש</div>
+      <div style="font-size:12px;color:var(--text-2);">🎁 7 ימי ניסיון חינם · ביטול בכל רגע</div>
+    </div>
+
+    <button class="pw-cta glow" id="pwOnbStart" style="margin-bottom:10px;">⭐ ראה את התוכניות</button>
+    <button class="pw-cta ghost" id="pwOnbSkip">המשך עם הגרסה החינמית</button>
+  </div></div>`;
+}
+
 // ---------- MAIN ----------
 function renderMain() {
   return `<div class="screen">
@@ -1383,6 +1706,34 @@ function renderBottomNav() {
   </nav>`;
 }
 
+// Context-aware upsell banner — adapts to remaining usage
+function renderSmartUpsell(remaining) {
+  let icon, title, desc;
+  if (remaining === 0) {
+    icon = '🚀'; title = 'הגעת למקסימום היומי'; desc = 'שדרג לקבל 80 ביום (Plus) או בלי הגבלה (Pro)';
+  } else if (remaining <= 2) {
+    icon = '⚡'; title = `${remaining} תשובות נשארו`; desc = 'שדרג לקבל פי 10 + AI Coach + בלי פרסומות';
+  } else {
+    const teasers = [
+      { i:'🧠', t:'פתח את ה-AI Coach', d:'נתח כל שיחה, דע בדיוק מה לכתוב' },
+      { i:'📸', t:'העלאת צילומי מסך', d:'תן ל-AI לקרוא את השיחה מהמסך' },
+      { i:'💎', t:'7 ימי ניסיון חינם', d:'כל הפיצ\'רים פתוחים — בטל מתי שתרצה' },
+    ];
+    const pick = teasers[Math.floor(Date.now()/3600000) % teasers.length];
+    icon = pick.i; title = pick.t; desc = pick.d;
+  }
+  return `
+    <div class="smart-upgrade-banner" id="promoBanner">
+      <div class="sub-icon">${icon}</div>
+      <div class="sub-info">
+        <div class="sub-title">${title}</div>
+        <div class="sub-desc">${desc}</div>
+      </div>
+      <div class="sub-arrow">‹</div>
+    </div>
+  `;
+}
+
 // ---- HOME tab ----
 function renderHome() {
   const name = state.user?.user_metadata?.full_name || '';
@@ -1401,16 +1752,7 @@ function renderHome() {
       <span class="tier-pill ${tier}">${tierInfo.emoji} ${tier==='free'?'חינם':tierInfo.name}${trial>0?` · 🎁 ${trial} ימי ניסיון`:''}</span>
     </div>
 
-    ${limits.ads ? `
-      <div class="card card-glass" id="promoBanner" style="display:flex;gap:14px;align-items:center;cursor:pointer;">
-        <div style="font-size:32px;">💎</div>
-        <div style="flex:1;">
-          <div style="font-weight:800;font-size:14px;">שדרג ל-Plus או Pro</div>
-          <div style="font-size:12px;color:var(--text-3);">7 ימי ניסיון חינם, בלי פרסומות, גישה לכל הסגנונות</div>
-        </div>
-        <div style="font-size:18px;color:var(--pink);">›</div>
-      </div>
-    ` : ''}
+    ${limits.ads ? renderSmartUpsell(remaining) : ''}
 
     <div class="mode-tabs">
       <button class="mode-tab ${state.appMode==='reply'?'active':''}" data-mode="reply">
@@ -1511,7 +1853,9 @@ function renderInputArea() {
         ` : ''}
         <div class="input-actions">
           <input type="file" id="fileIn" class="file-hidden" accept="image/*" />
-          <button class="input-action ${state.imageBase64?'attached':''}" id="attachBtn">📎 צילום מסך</button>
+          <button class="input-action ${state.imageBase64?'attached':''} ${!getLimits().hasImageUpload?'locked':''}" id="attachBtn" data-locked="${!getLimits().hasImageUpload}">
+            ${!getLimits().hasImageUpload ? '🔒 צילום מסך (Pro)' : '📎 צילום מסך'}
+          </button>
           ${isImg && !state.imageBase64 ? `<button class="input-action" id="backToText">↩ חזור לטקסט</button>` : ''}
         </div>
       </div>
@@ -1534,9 +1878,10 @@ function getCoachHistory() {
 }
 function saveCoachHistory(entry) {
   if (!state.user?.id) return;
+  if (!getLimits().hasMemory) return; // Pro only feature
   const hist = getCoachHistory();
   hist.unshift({ ...entry, ts: Date.now() });
-  localStorage.setItem(`mll2_coach_history_${state.user.id}`, JSON.stringify(hist.slice(0, 10)));
+  localStorage.setItem(`mll2_coach_history_${state.user.id}`, JSON.stringify(hist.slice(0, 20)));
 }
 function formatRelTime(ts) {
   const diff = Date.now() - ts;
@@ -1550,19 +1895,54 @@ function formatRelTime(ts) {
 function renderCoach() {
   const limits = getLimits();
   if (!limits.hasCoach) {
+    // Free user — show blurred preview with paywall
     return `
-      <div class="lock-overlay">
-        <div class="lock-emoji">🧠</div>
-        <div class="lock-title">AI Chat Coach</div>
-        <div class="lock-sub">המאמן האישי שלך לצ'אטים — מנתח את השיחה, מודד רמת עניין, ונותן ייעוץ מקצועי לכל הודעה.</div>
+      <div style="padding-top:6px;">
+        <div class="coach-hero">
+          <div class="coach-emoji">🧠</div>
+          <div class="coach-title">AI Chat Coach</div>
+          <div class="coach-sub">המאמן האישי שלך — מנתח כל שיחה</div>
+        </div>
+
+        <div class="blurred-preview">
+          <div class="preview-content">
+            <div class="interest-meter">
+              <div class="interest-ring" style="--pct:78;--color:#2eceff;">
+                <div class="pct">78%</div>
+              </div>
+              <div class="interest-info">
+                <div class="label">רמת עניין</div>
+                <div class="tone">חמים ופלרטטני</div>
+                <div class="reason">היא שולחת אמוג'ים, עונה מהר, ושאלה אותך פעמיים על תוכניות לסופ"ש</div>
+              </div>
+            </div>
+            <div class="coach-section-title">סיגנלים שזיהיתי</div>
+            <div class="signal-grid">
+              <span class="signal-chip">תגובה מהירה</span>
+              <span class="signal-chip">שאלה אישית</span>
+              <span class="signal-chip">אמוג'ים חמים</span>
+            </div>
+            <div class="reply-card" style="margin-top:10px;">
+              <div class="reply-head"><div class="reply-style">😏 פלרטטני</div></div>
+              <div class="reply-text">אז מה התוכניות שלך לסוף השבוע? אולי נמצא משהו לעשות ביחד...</div>
+            </div>
+          </div>
+          <div class="unlock-overlay">
+            <div class="unlock-icon">🔒</div>
+            <div class="unlock-text">נתח כל שיחה ב-3 שניות</div>
+            <button class="unlock-cta" id="coachUpgrade">💎 פתח את הקואצ' — נסה 7 ימים חינם</button>
+          </div>
+        </div>
+
+        <div class="coach-section-title">מה תקבל ב-Plus</div>
         <ul class="lock-features">
-          <li>📊 ניתוח רמת עניין של הצד השני</li>
-          <li>🎯 5 סגנונות תשובה לכל סיטואציה</li>
+          <li>📊 מד עניין מדויק עם נימוקים</li>
+          <li>🎯 5 סגנונות תשובה לכל מצב</li>
           <li>⏰ ייעוץ תזמון — מתי לענות, מתי לחכות</li>
-          <li>🚨 מצב חירום — תשובה מהירה כשצריך</li>
-          <li>💡 טיפים ואזהרות אישיות</li>
+          <li>🚨 מצב SOS — תשובה מהירה כשצריך</li>
+          <li>💡 טיפים אישיים על הצד השני</li>
         </ul>
-        <button class="btn btn-primary" id="coachUpgrade">💎 שדרג ל-Pro לפתיחת הקואצ'</button>
+        <button class="pw-cta glow" id="coachUpgrade2" style="margin-top:6px;">⭐ התחל ניסיון 7 ימים חינם</button>
       </div>
     `;
   }
@@ -1580,7 +1960,7 @@ function renderCoach() {
 
   if (state.coachResult) return renderCoachResult();
 
-  const hist = getCoachHistory();
+  const hist = limits.hasCoachDeep ? getCoachHistory() : [];
   const sel = state.crushes.find(c => c.id === state.selectedCrushId);
 
   return `
@@ -1588,8 +1968,19 @@ function renderCoach() {
       <div class="coach-hero">
         <div class="coach-emoji">🧠</div>
         <div class="coach-title">AI Chat Coach</div>
-        <div class="coach-sub">הדבק שיחה ואנתח אותה בשבילך</div>
+        <div class="coach-sub">${limits.hasCoachDeep ? 'ניתוח עמוק עם זיכרון והיסטוריה' : 'הדבק שיחה ואנתח אותה בשבילך'}</div>
       </div>
+
+      ${!limits.hasCoachDeep ? `
+        <div class="smart-upgrade-banner" id="coachProUpsell">
+          <div class="sub-icon">💎</div>
+          <div class="sub-info">
+            <div class="sub-title">שדרג ל-Pro לקואצ' עמוק</div>
+            <div class="sub-desc">העלאת צילומי מסך · היסטוריית שיחות · ניתוח אישיות</div>
+          </div>
+          <div class="sub-arrow">‹</div>
+        </div>
+      ` : ''}
 
       ${sel ? `
         <div class="crush-row" id="coachCrushPicker" style="margin-bottom:12px;">
@@ -1761,76 +2152,102 @@ function renderProfiles() {
 function renderPremium() {
   const tier = getTier();
   const isYr = state.billingCycle === 'yearly';
-  const plus = isYr ? 60 : 7;
-  const pro = isYr ? 99 : 10;
-  const plusMo = isYr ? (60/12).toFixed(2) : 7;
-  const proMo = isYr ? (99/12).toFixed(2) : 10;
+  const plus = isYr ? PRICING.plus.yearly : PRICING.plus.monthly;
+  const pro = isYr ? PRICING.pro.yearly : PRICING.pro.monthly;
+  const plusMo = isYr ? (PRICING.plus.yearly/12) : PRICING.plus.monthly;
+  const proMo = isYr ? (PRICING.pro.yearly/12) : PRICING.pro.monthly;
+  const plusSave = Math.round((1 - (PRICING.plus.yearly/12)/PRICING.plus.monthly)*100);
+  const proSave = Math.round((1 - (PRICING.pro.yearly/12)/PRICING.pro.monthly)*100);
 
   return `
-    <div class="premium-hero">
-      <div class="premium-emoji">💎</div>
-      <div class="premium-title">שדרג ל-Premium</div>
-      <div class="premium-sub">7 ימי ניסיון חינם - בטל מתי שתרצה</div>
+    <div class="pw-hero">
+      <div class="pw-emoji">💎</div>
+      <div class="pw-title">שדרג את הצ'אט שלך</div>
+      <div class="pw-sub">תשובות שכובשות. ניתוח שמבין. בלי לחשוב פעמיים.</div>
     </div>
 
-    <div class="cycle-toggle" id="cycleToggle">
+    <div class="pw-cycle" id="cycleToggle">
       <button data-cycle="monthly" class="${state.billingCycle==='monthly'?'active':''}">חודשי</button>
       <button data-cycle="yearly" class="${state.billingCycle==='yearly'?'active':''}">
-        שנתי <span class="save-tag">חוסך 29%</span>
+        שנתי <span class="save-tag">חסוך ${Math.max(plusSave, proSave)}%</span>
       </button>
     </div>
 
-    <div class="tier-card ${tier==='free'?'current':''}">
-      ${tier==='free'?'<span class="tier-tag now">המנוי שלך</span>':''}
-      <div class="tier-name">🆓 חינם</div>
-      <div class="tier-price"><span class="ccy">$</span>0 <span class="per">לתמיד</span></div>
-      <ul class="tier-feats">
-        <li>תשובות להודעות 💬</li>
-        <li>5 יצירות ביום</li>
-        <li>פרופיל קראש אחד</li>
-        <li class="off">בלי "פתיחת שיחה"</li>
-        <li class="off">בלי "עזרת ניסוח"</li>
-        <li class="off">פרסומות מופיעות</li>
+    <!-- FREE -->
+    <div class="pw-card ${tier==='free'?'current':''}">
+      ${tier==='free'?'<span class="pw-tag now">המנוי שלך</span>':''}
+      <div class="pw-name">🆓 חינם</div>
+      <div class="pw-tier-title">להתחיל</div>
+      <div class="pw-price"><span class="amount">₪0</span><span class="per">לתמיד</span></div>
+      <ul class="pw-feats">
+        <li><span class="check">✓</span>8 תשובות AI ליום</li>
+        <li><span class="check">✓</span>3 סגנונות בסיסיים</li>
+        <li><span class="check">✓</span>פרופיל קראש אחד</li>
+        <li class="off"><span class="check">×</span>בלי "פתיחת שיחה" / "עזרת ניסוח"</li>
+        <li class="off"><span class="check">×</span>בלי AI Coach וניתוח שיחה</li>
+        <li class="off"><span class="check">×</span>בלי העלאת צילומי מסך</li>
+        <li class="off"><span class="check">×</span>פרסומות מופיעות</li>
       </ul>
-      ${tier!=='free'?'<button class="btn btn-secondary" data-buy="free">חזור לחינם</button>':''}
     </div>
 
-    <div class="tier-card recommended ${tier==='plus'?'current':''}">
-      ${tier==='plus'?'<span class="tier-tag now">המנוי שלך</span>':'<span class="tier-tag popular">⭐ פופולרי</span>'}
-      <div class="tier-name">⭐ Plus</div>
-      <div class="tier-price"><span class="ccy">$</span>${plus} <span class="per">/ ${isYr?'שנה':'חודש'}</span></div>
-      ${isYr?`<div class="tier-yearly-note">≈ $${plusMo} לחודש · חוסך ~29%</div>`:''}
-      <div class="trial-tag">🎁 7 ימי ניסיון חינם</div>
-      <ul class="tier-feats">
-        <li>תשובות להודעות 💬</li>
-        <li>גישה ל"עזרת ניסוח" ✍️</li>
-        <li>כל הסגנונות פתוחים</li>
-        <li>50 יצירות ביום</li>
-        <li>עד 5 פרופילי קראש</li>
-        <li>בלי פרסומות</li>
-        <li class="off">בלי "פתיחת שיחה"</li>
+    <!-- PLUS (recommended) -->
+    <div class="pw-card recommended ${tier==='plus'?'current':''}">
+      ${tier==='plus'?'<span class="pw-tag now">המנוי שלך</span>':'<span class="pw-tag">⭐ הכי פופולרי</span>'}
+      <div class="pw-name">⭐ PLUS</div>
+      <div class="pw-tier-title">להיות בקצה</div>
+      <div class="pw-price">
+        <span class="amount">${fmtPrice(plus)}</span>
+        <span class="per">/ ${isYr?'שנה':'חודש'}</span>
+      </div>
+      ${isYr?`<div class="pw-yearly-hint">≈ ${fmtPrice(plusMo.toFixed(2))} לחודש · חסוך ${plusSave}%</div>`:''}
+      <div class="pw-trial">🎁 7 ימי ניסיון חינם · בלי התחייבות</div>
+      <ul class="pw-feats">
+        <li><span class="check">✓</span><span class="highlight">80 תשובות ביום</span> (פי 10 מחינם)</li>
+        <li><span class="check">✓</span>כל 8 סגנונות התשובה פתוחים</li>
+        <li><span class="check">✓</span>פתיחות שיחה + עזרת ניסוח</li>
+        <li><span class="check">✓</span>🧠 AI Chat Coach — ניתוח שיחה</li>
+        <li><span class="check">✓</span>📊 מד עניין (Interest Meter)</li>
+        <li><span class="check">✓</span>⏰ ייעוץ תזמון</li>
+        <li><span class="check">✓</span>🚨 מצב SOS — תשובה מהירה</li>
+        <li><span class="check">✓</span>עד 5 פרופילי קראש</li>
+        <li><span class="check">✓</span>בלי פרסומות</li>
       </ul>
-      ${tier!=='plus'?`<button class="btn btn-primary" data-buy="plus">${tier==='pro'?'עבור ל-Plus':'התחל ניסיון חינם'}</button>`:''}
+      ${tier!=='plus'?`<button class="pw-cta glow" data-buy="plus">${tier==='pro'?'עבור ל-Plus':'התחל ניסיון 7 ימים חינם'}</button>`:''}
     </div>
 
-    <div class="tier-card ${tier==='pro'?'current':''}">
-      ${tier==='pro'?'<span class="tier-tag now">המנוי שלך</span>':''}
-      <div class="tier-name">💎 Pro</div>
-      <div class="tier-price"><span class="ccy">$</span>${pro} <span class="per">/ ${isYr?'שנה':'חודש'}</span></div>
-      ${isYr?`<div class="tier-yearly-note">≈ $${proMo} לחודש · הכי משתלם 🔥</div>`:''}
-      <div class="trial-tag">🎁 7 ימי ניסיון חינם</div>
-      <ul class="tier-feats">
-        <li><strong>הכל פתוח, בלי הגבלות</strong></li>
-        <li>תשובות + פתיחות + ניסוח</li>
-        <li>כל הסגנונות</li>
-        <li>יצירות בלי הגבלה</li>
-        <li>פרופילי קראש בלי הגבלה</li>
-        <li>בלי פרסומות</li>
+    <!-- PRO -->
+    <div class="pw-card ${tier==='pro'?'current':''}" style="${tier==='pro'?'':'border-color:rgba(46,206,255,0.3);'}">
+      ${tier==='pro'?'<span class="pw-tag now">המנוי שלך</span>':'<span class="pw-tag" style="background:linear-gradient(135deg,#2eceff,#9a2eff);">🔥 הכי מתקדם</span>'}
+      <div class="pw-name">💎 PRO</div>
+      <div class="pw-tier-title">לכבוש את הכל</div>
+      <div class="pw-price">
+        <span class="amount">${fmtPrice(pro)}</span>
+        <span class="per">/ ${isYr?'שנה':'חודש'}</span>
+      </div>
+      ${isYr?`<div class="pw-yearly-hint">≈ ${fmtPrice(proMo.toFixed(2))} לחודש · חסוך ${proSave}%</div>`:''}
+      <div class="pw-trial">🎁 7 ימי ניסיון חינם · ביטול בכל רגע</div>
+      <ul class="pw-feats">
+        <li><span class="check">✓</span><span class="highlight">כל מה ש-Plus נותן, ועוד:</span></li>
+        <li><span class="check">✓</span>♾️ תשובות בלי הגבלה</li>
+        <li><span class="check">✓</span>📸 העלאת צילומי מסך לניתוח</li>
+        <li><span class="check">✓</span>🔬 ניתוח עמוק של מערכת היחסים</li>
+        <li><span class="check">✓</span>🧬 זיהוי אישיות וטון</li>
+        <li><span class="check">✓</span>📈 היסטוריית שיחות + אנליטיקס</li>
+        <li><span class="check">✓</span>🎯 הצעות אסטרטגיה מותאמות</li>
+        <li><span class="check">✓</span>⚡ תשובות עם עדיפות (מהיר יותר)</li>
+        <li><span class="check">✓</span>🚀 גישה מוקדמת לפיצ'רים חדשים</li>
+        <li><span class="check">✓</span>פרופילי קראש ללא הגבלה</li>
       </ul>
-      ${tier!=='pro'?`<button class="btn btn-primary" data-buy="pro">${tier==='plus'?'שדרג ל-Pro':'התחל ניסיון חינם'}</button>`:''}
+      ${tier!=='pro'?`<button class="pw-cta primary" data-buy="pro">${tier==='plus'?'שדרג ל-Pro':'התחל ניסיון 7 ימים חינם'}</button>`:''}
     </div>
 
-    <div class="muted-note">לחיצה על "שדרג" תפתח Stripe לתשלום מאובטח. בטל מתי שתרצה דרך אימייל.</div>
+    <div class="pw-trust">
+      <div class="item">🔒 תשלום מאובטח Stripe</div>
+      <div class="item">↩️ ביטול בכל רגע</div>
+      <div class="item">🎁 7 ימי ניסיון</div>
+    </div>
+
+    <div class="muted-note">החיוב מתבצע רק אחרי 7 ימי ניסיון. ניתן לבטל בכל רגע דרך אימייל ולא תחויב.</div>
   `;
 }
 
@@ -1939,6 +2356,22 @@ function attachHandlers() {
     });
   }
 
+  // ---- paywall onboarding ----
+  $('#pwOnbStart')?.addEventListener('click', () => {
+    haptic();
+    if (state.user?.id) localStorage.setItem(`mll2_paywall_shown_${state.user.id}`, '1');
+    state.screen = 'main';
+    state.navTab = 'premium';
+    render();
+  });
+  $('#pwOnbSkip')?.addEventListener('click', () => {
+    haptic();
+    if (state.user?.id) localStorage.setItem(`mll2_paywall_shown_${state.user.id}`, '1');
+    state.screen = 'main';
+    state.navTab = 'home';
+    render();
+  });
+
   // ---- onboarding profile ----
   if ($('#onbSubmit')) {
     if (state.user?.user_metadata?.full_name) $('#onbName').value = state.user.user_metadata.full_name;
@@ -1959,7 +2392,8 @@ function attachHandlers() {
         const { data: updated } = await sb.auth.updateUser({ data: { full_name } });
         if (updated?.user) state.user = updated.user;
         await saveProfile({ birth_date, gender, usage_purpose });
-        state.screen = 'main';
+        const paywallShown = localStorage.getItem(`mll2_paywall_shown_${state.user?.id}`) === '1';
+        state.screen = (!paywallShown && getTier() === 'free') ? 'paywall' : 'main';
         render();
       } catch (err) {
         btn.disabled = false;
@@ -2039,6 +2473,7 @@ function attachHandlers() {
 
   // ---- attach image ----
   $('#attachBtn')?.addEventListener('click', () => {
+    if (!getLimits().hasImageUpload) { haptic(20); state.navTab='premium'; render(); showToast('העלאת צילומי מסך זמינה ב-Pro 💎', 'error'); return; }
     haptic();
     state.inputMode = 'image';
     $('#fileIn').click();
@@ -2071,6 +2506,8 @@ function attachHandlers() {
 
   // ---- coach ----
   $('#coachUpgrade')?.addEventListener('click', () => { haptic(); state.navTab='premium'; render(); });
+  $('#coachUpgrade2')?.addEventListener('click', () => { haptic(); state.navTab='premium'; render(); });
+  $('#coachProUpsell')?.addEventListener('click', () => { haptic(); state.navTab='premium'; render(); });
   $('#coachCrushPicker')?.addEventListener('click', () => { haptic(); state.navTab='profiles'; render(); });
   $('#coachInput')?.addEventListener('input', (e) => { state.coachInput = e.target.value; });
   $('#coachAnalyze')?.addEventListener('click', handleCoachAnalyze);
@@ -2623,8 +3060,10 @@ async function init() {
 function afterAuth() {
   const hasProfile = state.user?.user_metadata?.full_name && state.profile?.birth_date && state.profile?.gender && state.profile?.usage_purpose;
   const introDone = localStorage.getItem('mll2_intro_done') === '1';
+  const paywallShown = localStorage.getItem(`mll2_paywall_shown_${state.user?.id}`) === '1';
   if (!introDone) { state.screen = 'onboardIntro'; state.onboardIntroIdx = 0; }
   else if (!hasProfile) state.screen = 'onboardProfile';
+  else if (!paywallShown && getTier() === 'free') state.screen = 'paywall';
   else state.screen = 'main';
   render();
 }
