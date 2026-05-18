@@ -1495,7 +1495,7 @@ async function generateAnswers() {
     if (!text) { showToast('הדבק את ההודעה שקיבלת', 'error'); return null; }
     payload = { ...base, mode:'text', text };
   }
-  console.log('[reply-source] requesting from Gemini backend, situation=' + payload.situation + ', style=' + payload.style);
+  console.log('[reply-source] requesting from Claude backend, situation=' + payload.situation + ', style=' + payload.style);
   const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
@@ -1509,7 +1509,7 @@ async function generateAnswers() {
   }
   const d = await r.json();
   if (!Array.isArray(d.answers)) throw new Error('תשובה לא תקינה');
-  console.log('[reply-source] ✓ got ' + d.answers.length + ' replies from Gemini backend');
+  console.log('[reply-source] ✓ got ' + d.answers.length + ' replies from Claude (Anthropic API)');
   return d.answers;
 }
 
