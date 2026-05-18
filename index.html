@@ -1310,12 +1310,31 @@ const STYLES = [
   { id:'sharp', label:'חד', emoji:'⚡' },
 ];
 
+const SITUATIONS = [
+  { id:'auto',           label:'אוטומטי',          emoji:'✨' },
+  { id:'first_message',  label:'הודעה ראשונה',     emoji:'👋' },
+  { id:'continue',       label:'המשך שיחה',        emoji:'💬' },
+  { id:'dry',            label:'היא יבשה',         emoji:'🥱' },
+  { id:'ignoring',       label:'מתעלמת',          emoji:'👻' },
+  { id:'bring_back',     label:'להחזיר עניין',     emoji:'🪝' },
+  { id:'after_date',     label:'אחרי דייט',        emoji:'🌙' },
+  { id:'haha',           label:"היא כתבה 'חחח'",   emoji:'😅' },
+  { id:'story_reply',    label:'תגובה לסטורי',     emoji:'📸' },
+  { id:'flirty_smart',   label:'לפלרטט בלי קרינג׳', emoji:'😏' },
+  { id:'not_desperate',  label:'לא נואש',          emoji:'🧊' },
+  { id:'cute',           label:'חמוד',             emoji:'🥰' },
+  { id:'mysterious',     label:'מסתורי',           emoji:'🌑' },
+  { id:'funny_clean',    label:'מצחיק נקי',        emoji:'😂' },
+  { id:'confident',      label:'בטוח',             emoji:'💪' },
+];
+
 const state = {
   user: null,
   profile: null,
   crushes: [],
   selectedCrushId: null,
   selectedStyle: 'funny',
+  selectedSituation: 'auto',
   appMode: 'reply',        // reply | opener | phrase
   inputMode: 'text',       // text | image
   imageBase64: null,
@@ -1456,6 +1475,7 @@ async function generateAnswers() {
   const crush = state.crushes.find(c => c.id === state.selectedCrushId) || null;
   const base = {
     style: state.selectedStyle,
+    situation: state.selectedSituation || 'auto',
     crush, crushId: state.selectedCrushId,
     userGender: state.profile?.gender || null,
     userName: state.user?.user_metadata?.full_name || null,
@@ -1475,6 +1495,7 @@ async function generateAnswers() {
     if (!text) { showToast('הדבק את ההודעה שקיבלת', 'error'); return null; }
     payload = { ...base, mode:'text', text };
   }
+  console.log('[reply-source] requesting from Gemini backend, situation=' + payload.situation + ', style=' + payload.style);
   const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
@@ -1483,10 +1504,12 @@ async function generateAnswers() {
   if (!r.ok) {
     let m = `שגיאה (${r.status})`;
     try { const j = await r.json(); if (j.error) m += `: ${j.error}`; } catch {}
+    console.error('[reply-source] backend error:', m);
     throw new Error(m);
   }
   const d = await r.json();
   if (!Array.isArray(d.answers)) throw new Error('תשובה לא תקינה');
+  console.log('[reply-source] ✓ got ' + d.answers.length + ' replies from Gemini backend');
   return d.answers;
 }
 
@@ -1796,6 +1819,16 @@ function renderHome() {
     </div>
 
     ${renderInputArea()}
+
+    <div class="card">
+      <div class="card-title">🎯 מה המצב?</div>
+      <div class="styles-scroll" id="situationsScroll">
+        ${SITUATIONS.map(s => `
+          <button class="style-chip ${state.selectedSituation===s.id?'active':''}" data-situation="${s.id}">
+            <span class="se">${s.emoji}</span><span>${s.label}</span>
+          </button>`).join('')}
+      </div>
+    </div>
 
     <div class="card">
       <div class="card-title">🎭 איזה סגנון?</div>
@@ -2481,11 +2514,19 @@ function attachHandlers() {
   });
 
   // ---- style chips ----
-  $$('.style-chip').forEach(el => el.addEventListener('click', () => {
+  $$('#stylesScroll .style-chip').forEach(el => el.addEventListener('click', () => {
     if (el.dataset.locked === 'true') { haptic(20); state.navTab='premium'; render(); showToast('סגנון זה זמין ב-Plus ומעלה 💎', 'error'); return; }
     haptic();
     state.selectedStyle = el.dataset.style;
-    $$('.style-chip').forEach(c => c.classList.remove('active'));
+    $$('#stylesScroll .style-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  }));
+
+  // ---- situation chips ----
+  $$('#situationsScroll .style-chip').forEach(el => el.addEventListener('click', () => {
+    haptic();
+    state.selectedSituation = el.dataset.situation;
+    $$('#situationsScroll .style-chip').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
   }));
 
