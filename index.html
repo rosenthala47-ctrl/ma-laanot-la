@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#07050f" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>מה לענות לה? 💬</title>
 <link rel="manifest" href="manifest.json" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1494,24 +1497,39 @@ async function generateAnswers() {
 function render() {
   const root = $('#screens');
   let html = '';
-  if (state.screen === 'boot') {
-    html = renderBoot();
-  } else if (state.screen === 'auth') {
-    html = renderAuth();
-  } else if (state.screen === 'onboardIntro') {
-    html = renderOnboardIntro();
-  } else if (state.screen === 'onboardProfile') {
-    html = renderOnboardProfile();
-  } else if (state.screen === 'paywall') {
-    html = renderPaywallOnboarding();
-  } else {
-    html = renderMain();
+  try {
+    if (state.screen === 'boot') {
+      html = renderBoot();
+    } else if (state.screen === 'auth') {
+      html = renderAuth();
+    } else if (state.screen === 'onboardIntro') {
+      html = renderOnboardIntro();
+    } else if (state.screen === 'onboardProfile') {
+      html = renderOnboardProfile();
+    } else if (state.screen === 'paywall') {
+      html = renderPaywallOnboarding();
+    } else {
+      html = renderMain();
+    }
+  } catch (e) {
+    console.error('Render error:', e);
+    try { showToast('שגיאה: ' + (e.message || e), 'error'); } catch {}
+    html = `<div class="screen active" style="padding:20px;color:#fff;">
+      <h2 style="color:#ff2e93;">שגיאת תצוגה</h2>
+      <pre style="white-space:pre-wrap;font-size:11px;background:rgba(0,0,0,0.5);padding:10px;border-radius:8px;color:#ffaaaa;">${(e.stack||e.message||e)+''}</pre>
+      <button onclick="state.navTab='home';state.screen='main';render()" style="margin-top:14px;padding:10px 20px;background:#9a2eff;color:#fff;border:none;border-radius:8px;">חזרה לבית</button>
+    </div>`;
   }
   root.innerHTML = html;
   // mark active
   setTimeout(() => $$('.screen', root).forEach(s => s.classList.add('active')), 10);
-  attachHandlers();
+  try { attachHandlers(); } catch (e) { console.error('attachHandlers error:', e); try { showToast('שגיאת חיבור: ' + (e.message||e), 'error'); } catch {} }
 }
+
+window.addEventListener('error', (ev) => {
+  console.error('Global error:', ev.error || ev.message);
+  try { showToast('שגיאה גלובלית: ' + (ev.error?.message || ev.message), 'error'); } catch {}
+});
 
 function renderBoot() {
   return `<div class="screen active"><div class="splash">
