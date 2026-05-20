@@ -4,7 +4,10 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <meta name="theme-color" content="#0f0c1a"/>
-<title>VocabBoost – English ↔ Hebrew</title>
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<title>VocabBoost v3 – English ↔ Hebrew</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet"/>
@@ -600,13 +603,18 @@ function save() {
 
 function load() {
   try { vocab = JSON.parse(localStorage.getItem('vb_vocab') || '[]'); } catch(e){ vocab=[]; }
-  // Remove entries where Hebrew ended up in the EN field (old broken data)
+  // Remove broken entries: both fields same script, missing fields, or wrong script in field
   const before = vocab.length;
-  vocab = vocab.filter(w => w.en && w.he && !hasHebrew(w.en));
+  vocab = vocab.filter(w => {
+    if(!w.en || !w.he) return false;
+    if(hasHebrew(w.en)) return false;          // EN field has Hebrew → broken
+    if(!hasHebrew(w.he)) return false;         // HE field has no Hebrew → broken
+    if(!hasLatin(w.en)) return false;          // EN field has no Latin → broken
+    return true;
+  });
   if(vocab.length < before) {
     save();
-    const removed = before - vocab.length;
-    console.warn(`Removed ${removed} broken word(s) with Hebrew in the English field.`);
+    console.warn(`Removed ${before - vocab.length} broken word(s) from saved data.`);
   }
   checkStreakUpdate();
   updateHomeStats();
@@ -694,15 +702,15 @@ function setDir(dir, btn) {
   const label = document.getElementById('words-label');
   const ta = document.getElementById('words-input');
   if(dir === 'en-he') {
-    hint.textContent = 'Type or paste English words (one per line, or comma separated). The app will translate them to Hebrew automatically.';
-    label.textContent = 'Your English words (one per line)';
-    ta.placeholder = 'apple\nbanana\nbeautiful\nfreedom...';
+    hint.innerHTML = '✨ <strong>Smart detection:</strong> Type English or Hebrew — the app auto-detects the language. Words you type get translated to the opposite language.';
+    label.textContent = 'Your words (one per line)';
+    ta.placeholder = 'apple\nbanana\nfreedom\nתפוח\nחופש...';
     ta.style.direction = 'ltr';
     ta.style.textAlign = 'left';
   } else {
-    hint.textContent = 'הקלד או הדבק מילים בעברית (שורה אחת לכל מילה). האפליקציה תתרגם אותן לאנגלית אוטומטית.';
-    label.textContent = 'המילים שלך בעברית (שורה לכל מילה)';
-    ta.placeholder = 'תפוח\nבננה\nיפה\nחופש...';
+    hint.innerHTML = '✨ <strong>זיהוי חכם:</strong> אפשר להקליד עברית או אנגלית — האפליקציה מזהה אוטומטית את השפה ותתרגם לשפה השנייה.';
+    label.textContent = 'המילים שלך (שורה לכל מילה)';
+    ta.placeholder = 'תפוח\nבננה\nfreedom\nbeautiful...';
     ta.style.direction = 'rtl';
     ta.style.textAlign = 'right';
   }
@@ -756,20 +764,32 @@ async function translateWords() {
   const statusEl = document.getElementById('translate-status');
   statusEl.innerHTML = `<div class="translate-progress"><div class="spinner"></div><div class="loading-text">Translating ${lines.length} words...</div></div>`;
 
-  const from = direction === 'en-he' ? 'en' : 'he';
-  const to   = direction === 'en-he' ? 'he' : 'en';
-
   let added = 0, failed = [];
   for(let i = 0; i < lines.length; i++) {
     const word = lines[i];
     statusEl.querySelector('.loading-text').textContent = `Translating ${i+1} of ${lines.length}...`;
+
+    // Auto-detect script — ignore direction setting if it's wrong
+    const wordIsHe = hasHebrew(word);
+    const wordIsEn = hasLatin(word) && !wordIsHe;
+    if(!wordIsHe && !wordIsEn) { failed.push(word); continue; } // not en or he
+
+    const from = wordIsHe ? 'he' : 'en';
+    const to   = wordIsHe ? 'en' : 'he';
+
     const translated = await translateWord(word, from, to);
     if(!translated) { failed.push(word); continue; }
-    let en = direction === 'en-he' ? word       : translated;
-    let he = direction === 'en-he' ? translated : word;
-    // Safety check: if Hebrew ended up in the English field, swap or reject
-    if(hasHebrew(en) && !hasHebrew(he)) { [en, he] = [he, en]; } // swap
-    else if(hasHebrew(en)) { failed.push(word); continue; }       // both Hebrew — reject
+
+    // Strip Hebrew nikud from translation if Hebrew — compare base letters only
+    const normalize = s => s.replace(/[֑-ׇ]/g, '').toLowerCase().trim();
+    if(normalize(translated) === normalize(word)) { failed.push(word); continue; }
+
+    const en = wordIsEn ? word : translated;
+    const he = wordIsHe ? word : translated;
+
+    // Final validation — must be clean EN ↔ HE pair
+    if(hasHebrew(en) || !hasLatin(en) || !hasHebrew(he)) { failed.push(word); continue; }
+
     const exists = vocab.some(v => v.en.toLowerCase() === en.toLowerCase());
     if(!exists) { vocab.push({ en, he, mastery: 0, attempts: 0, correct: 0 }); added++; }
     await new Promise(r=>setTimeout(r,150));
