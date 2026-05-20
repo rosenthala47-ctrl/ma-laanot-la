@@ -600,6 +600,14 @@ function save() {
 
 function load() {
   try { vocab = JSON.parse(localStorage.getItem('vb_vocab') || '[]'); } catch(e){ vocab=[]; }
+  // Remove entries where Hebrew ended up in the EN field (old broken data)
+  const before = vocab.length;
+  vocab = vocab.filter(w => w.en && w.he && !hasHebrew(w.en));
+  if(vocab.length < before) {
+    save();
+    const removed = before - vocab.length;
+    console.warn(`Removed ${removed} broken word(s) with Hebrew in the English field.`);
+  }
   checkStreakUpdate();
   updateHomeStats();
 }
@@ -706,6 +714,11 @@ function setDir(dir, btn) {
 // Google Translate uses 'iw' internally for Hebrew
 const GT_CODE = { en: 'en', he: 'iw' };
 
+// Script detection helpers
+function hasHebrew(s) { return /[֐-׿יִ-ﭏ]/.test(s); }
+function hasLatin(s)  { return /[a-zA-Z]/.test(s); }
+function isValidPair(en, he) { return !hasHebrew(en) && hasHebrew(he); }
+
 async function translateWord(word, from, to) {
   // Primary: unofficial Google Translate endpoint (more reliable)
   try {
@@ -752,8 +765,11 @@ async function translateWords() {
     statusEl.querySelector('.loading-text').textContent = `Translating ${i+1} of ${lines.length}...`;
     const translated = await translateWord(word, from, to);
     if(!translated) { failed.push(word); continue; }
-    const en = direction === 'en-he' ? word       : translated;
-    const he = direction === 'en-he' ? translated : word;
+    let en = direction === 'en-he' ? word       : translated;
+    let he = direction === 'en-he' ? translated : word;
+    // Safety check: if Hebrew ended up in the English field, swap or reject
+    if(hasHebrew(en) && !hasHebrew(he)) { [en, he] = [he, en]; } // swap
+    else if(hasHebrew(en)) { failed.push(word); continue; }       // both Hebrew — reject
     const exists = vocab.some(v => v.en.toLowerCase() === en.toLowerCase());
     if(!exists) { vocab.push({ en, he, mastery: 0, attempts: 0, correct: 0 }); added++; }
     await new Promise(r=>setTimeout(r,150));
