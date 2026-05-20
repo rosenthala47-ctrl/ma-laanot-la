@@ -703,15 +703,33 @@ function setDir(dir, btn) {
 /* ================================================================
    TRANSLATION
 ================================================================ */
+// Google Translate uses 'iw' internally for Hebrew
+const GT_CODE = { en: 'en', he: 'iw' };
+
 async function translateWord(word, from, to) {
-  const pair = `${from}|${to}`;
-  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${pair}`;
+  // Primary: unofficial Google Translate endpoint (more reliable)
   try {
+    const sl = GT_CODE[from] || from;
+    const tl = GT_CODE[to]   || to;
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(word)}`;
     const r = await fetch(url);
     const d = await r.json();
-    if(d.responseStatus === 200) return d.responseData.translatedText || word;
-    return word;
-  } catch(e) { return word; }
+    const result = (d[0] || []).map(x => x[0]).filter(Boolean).join('').trim();
+    if(result && result.toLowerCase() !== word.toLowerCase()) return result;
+  } catch(e) {}
+
+  // Fallback: MyMemory
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${from}|${to}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if(d.responseStatus === 200) {
+      const t = (d.responseData.translatedText || '').trim();
+      if(t && t.toLowerCase() !== word.toLowerCase()) return t;
+    }
+  } catch(e) {}
+
+  return null; // both APIs failed for this word
 }
 
 async function translateWords() {
@@ -728,23 +746,33 @@ async function translateWords() {
   const from = direction === 'en-he' ? 'en' : 'he';
   const to   = direction === 'en-he' ? 'he' : 'en';
 
-  let added = 0;
+  let added = 0, failed = [];
   for(let i = 0; i < lines.length; i++) {
     const word = lines[i];
     statusEl.querySelector('.loading-text').textContent = `Translating ${i+1} of ${lines.length}...`;
     const translated = await translateWord(word, from, to);
-    const en = direction === 'en-he' ? word : translated;
+    if(!translated) { failed.push(word); continue; }
+    const en = direction === 'en-he' ? word       : translated;
     const he = direction === 'en-he' ? translated : word;
     const exists = vocab.some(v => v.en.toLowerCase() === en.toLowerCase());
     if(!exists) { vocab.push({ en, he, mastery: 0, attempts: 0, correct: 0 }); added++; }
-    await new Promise(r=>setTimeout(r,200)); // rate-limit
+    await new Promise(r=>setTimeout(r,150));
   }
 
   save();
   statusEl.innerHTML = '';
-  document.getElementById('words-input').value = '';
-  showToast(`Added ${added} new words! 🎉`, 'success');
-  setTimeout(() => goScreen('s-words'), 800);
+  if(added > 0) document.getElementById('words-input').value = '';
+  if(failed.length > 0) {
+    statusEl.innerHTML = `<div class="dir-hint" style="border-color:rgba(255,82,82,.3);background:rgba(255,82,82,.08);color:var(--red)">
+      ⚠️ Could not translate: <strong>${failed.join(', ')}</strong>. Please check spelling and try again.
+    </div>`;
+  }
+  if(added > 0) {
+    showToast(`Added ${added} new word${added!==1?'s':''}! 🎉`, 'success');
+    setTimeout(() => goScreen('s-words'), 900);
+  } else if(failed.length === 0) {
+    showToast('These words are already in your list', 'info');
+  }
 }
 
 /* ================================================================
