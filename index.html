@@ -603,6 +603,44 @@ select.input {
   color:var(--text-1); font-weight:600;
 }
 
+/* Crush history timeline */
+.history-list {
+  display:flex; flex-direction:column; gap:10px;
+  max-height:55vh; overflow-y:auto;
+  padding:4px 2px;
+}
+.history-item {
+  background:var(--surface-3); border:1px solid var(--stroke);
+  border-radius:14px; padding:12px;
+}
+.history-head {
+  display:flex; align-items:center; gap:8px;
+  margin-bottom:8px; font-size:12px;
+}
+.history-mode { font-weight:800; color:var(--text-1); }
+.history-when { color:var(--text-3); flex:1; }
+.history-del {
+  background:transparent; border:1px solid var(--stroke);
+  border-radius:8px; padding:4px 8px; cursor:pointer;
+  font-size:12px; color:var(--text-3);
+}
+.history-del:active { transform:scale(0.92); }
+.history-input {
+  font-size:13px; color:var(--text-2); line-height:1.5;
+  padding:8px 10px; background:var(--surface);
+  border-radius:8px; margin-bottom:8px;
+}
+.history-out { display:flex; flex-direction:column; gap:5px; }
+.history-style-tag {
+  font-size:11px; color:var(--text-3); font-weight:700;
+  margin-bottom:2px;
+}
+.history-answer {
+  font-size:13px; color:var(--text-1); line-height:1.5;
+  padding:6px 10px; background:var(--surface);
+  border-radius:8px; border-right:2px solid var(--purple);
+}
+
 /* =================== LOADING =================== */
 .loading-zone {
   display:none; padding:36px 20px; text-align:center;
@@ -1539,12 +1577,14 @@ async function deleteCrush(id) {
 
 async function generateAnswers() {
   const crush = state.crushes.find(c => c.id === state.selectedCrushId) || null;
+  const recentHistory = crush ? buildHistorySummary(crush.id, 3) : null;
   const base = {
     style: state.selectedStyle,
     situation: state.selectedSituation || 'auto',
     crush, crushId: state.selectedCrushId,
     userGender: state.profile?.gender || null,
     userName: state.user?.user_metadata?.full_name || null,
+    recentHistory, // string of last 3 interactions, or null
   };
   let payload;
   if (state.appMode === 'opener') {
@@ -2028,6 +2068,62 @@ function saveCoachHistory(entry) {
   hist.unshift({ ...entry, ts: Date.now() });
   localStorage.setItem(`mll2_coach_history_${state.user.id}`, JSON.stringify(hist.slice(0, 20)));
 }
+
+// ---- Per-crush conversation history (Wave 3 memory) ----
+function getCrushHistoryAll() {
+  if (!state.user?.id) return {};
+  try { return JSON.parse(localStorage.getItem(`mll2_crush_history_${state.user.id}`) || '{}'); }
+  catch { return {}; }
+}
+function getCrushInteractions(crushId) {
+  if (!crushId) return [];
+  const all = getCrushHistoryAll();
+  return all[crushId] || [];
+}
+function saveCrushInteraction(crushId, interaction) {
+  if (!state.user?.id || !crushId) return;
+  try {
+    const key = `mll2_crush_history_${state.user.id}`;
+    const all = getCrushHistoryAll();
+    if (!all[crushId]) all[crushId] = [];
+    all[crushId].unshift({ ...interaction, ts: Date.now() });
+    all[crushId] = all[crushId].slice(0, 30); // keep last 30 per crush
+    localStorage.setItem(key, JSON.stringify(all));
+  } catch {}
+}
+function deleteCrushInteraction(crushId, ts) {
+  if (!state.user?.id || !crushId) return;
+  try {
+    const key = `mll2_crush_history_${state.user.id}`;
+    const all = getCrushHistoryAll();
+    if (!all[crushId]) return;
+    all[crushId] = all[crushId].filter(i => i.ts !== ts);
+    localStorage.setItem(key, JSON.stringify(all));
+  } catch {}
+}
+function clearCrushHistory(crushId) {
+  if (!state.user?.id || !crushId) return;
+  try {
+    const key = `mll2_crush_history_${state.user.id}`;
+    const all = getCrushHistoryAll();
+    delete all[crushId];
+    localStorage.setItem(key, JSON.stringify(all));
+  } catch {}
+}
+// Build short context string from recent interactions for prompt injection
+function buildHistorySummary(crushId, maxItems = 3) {
+  const items = getCrushInteractions(crushId).slice(0, maxItems);
+  if (!items.length) return null;
+  // Reverse to chronological (oldest first) for narrative flow
+  const chrono = items.slice().reverse();
+  return chrono.map((i, idx) => {
+    const when = formatRelTime(i.ts);
+    const modeLabel = { reply: 'הוא ענה לה', opener: 'הוא פתח שיחה', phrase: 'הוא ניסח משהו', check: 'הוא בדק טיוטה' }[i.mode] || i.mode;
+    const input = (i.input || '').slice(0, 80);
+    const chosen = i.picked || (Array.isArray(i.output) ? i.output[0] : '') || '';
+    return `${idx+1}. (${when}) ${modeLabel} בסגנון "${i.style||'?'}"${input?` · קלט: "${input}"`:''}${chosen?` · התשובה הסופית: "${chosen.slice(0, 100)}"`:''}`;
+  }).join('\n');
+}
 function formatRelTime(ts) {
   const diff = Date.now() - ts;
   const m = Math.floor(diff/60000), h = Math.floor(diff/3600000), d = Math.floor(diff/86400000);
@@ -2276,19 +2372,22 @@ function renderProfiles() {
           <div class="empty-title">עדיין אין פרופילים</div>
           <div class="empty-sub">תוסיף את מי שאתה מדבר איתו ותקבל תשובות שיודעות מי הוא.</div>
         </div>
-      ` : list.map(c => `
+      ` : list.map(c => {
+        const histCount = getCrushInteractions(c.id).length;
+        return `
         <div class="crush-card ${state.selectedCrushId===c.id?'selected':''}" data-id="${c.id}">
           <div class="crush-avatar">${esc(c.name.charAt(0))}</div>
           <div class="crush-info">
             <div class="crush-name">${esc(c.name)}</div>
-            <div class="crush-meta">${esc([c.age&&`גיל ${c.age}`, c.relationship_status].filter(Boolean).join(' · ') || 'אין פרטים')}</div>
+            <div class="crush-meta">${esc([c.age&&`גיל ${c.age}`, c.relationship_status].filter(Boolean).join(' · ') || 'אין פרטים')}${histCount>0?` · 📜 ${histCount} אינטראקציות`:''}</div>
           </div>
           <div class="actions">
+            <button class="hist-crush" data-id="${c.id}" title="היסטוריה">📜</button>
             <button class="edit-crush" data-id="${c.id}">✏️</button>
             <button class="del-crush" data-id="${c.id}">🗑</button>
           </div>
         </div>
-      `).join('')}
+      `;}).join('')}
     </div>
   `;
 }
@@ -2593,6 +2692,11 @@ function attachHandlers() {
     const c = state.crushes.find(x => x.id === el.dataset.id);
     openCrushSheet(c);
   }));
+  $$('.hist-crush').forEach(el => el.addEventListener('click', (e) => {
+    e.stopPropagation(); haptic();
+    const c = state.crushes.find(x => x.id === el.dataset.id);
+    if (c) openCrushHistorySheet(c);
+  }));
   $$('.del-crush').forEach(el => el.addEventListener('click', async (e) => {
     e.stopPropagation(); haptic(20);
     const c = state.crushes.find(x => x.id === el.dataset.id);
@@ -2742,6 +2846,24 @@ async function handleGenerate() {
         renderCheckResult(answers);
       } else {
         renderResults(answers);
+      }
+      // Wave 3: save interaction to per-crush history (if a crush is selected)
+      if (state.selectedCrushId) {
+        const mode = state.appMode;
+        let input = '';
+        if (mode === 'reply') input = $('#msgInput')?.value.trim() || '';
+        else if (mode === 'opener') input = $('#openerCtx')?.value.trim() || '';
+        else if (mode === 'phrase') input = $('#phraseInput')?.value.trim() || '';
+        else if (mode === 'check') input = $('#checkInput')?.value.trim() || '';
+        saveCrushInteraction(state.selectedCrushId, {
+          mode,
+          style: state.selectedStyle,
+          situation: state.selectedSituation || 'auto',
+          input,
+          output: answers.__check ? null : answers,
+          checkScore: answers.__check ? answers.score : null,
+          checkVerdict: answers.__check ? answers.verdict : null,
+        });
       }
       results?.scrollIntoView({ behavior:'smooth', block:'start' });
       haptic(15);
@@ -3205,6 +3327,63 @@ function openCrushSheet(crush) {
       $('#crSave').disabled = false;
       showToast(err.message || 'שגיאה', 'error');
     }
+  });
+}
+
+// ---- Crush history timeline sheet ----
+function openCrushHistorySheet(crush) {
+  const items = getCrushInteractions(crush.id);
+  const modeLabels = { reply:'💬 תשובה', opener:'🚀 פתיחה', phrase:'✍️ ניסוח', check:'🔍 בדיקה' };
+
+  openSheet(`
+    <div class="sheet-title">📜 היסטוריית שיחה — ${esc(crush.name)}</div>
+    <div class="sheet-sub">${items.length===0 ? 'עדיין אין אינטראקציות. כל פעם שתפיק תשובות עם הפרופיל הזה — זה יישמר כאן.' : `${items.length} אינטראקציות אחרונות. ה-AI משתמש ב-3 האחרונות לרצף.`}</div>
+
+    ${items.length === 0 ? `
+      <div class="empty-state" style="padding:20px 10px;">
+        <div class="empty-emoji">💭</div>
+        <div class="empty-title">בלי היסטוריה — בלי זיכרון</div>
+        <div class="empty-sub">בחר את הפרופיל בעמוד הבית, ועשה אינטראקציה ראשונה.</div>
+      </div>
+    ` : `
+      <div class="history-list">
+        ${items.map(i => `
+          <div class="history-item" data-ts="${i.ts}">
+            <div class="history-head">
+              <span class="history-mode">${modeLabels[i.mode] || i.mode}</span>
+              <span class="history-when">${formatRelTime(i.ts)}</span>
+              <button class="history-del" data-ts="${i.ts}" title="מחק">🗑</button>
+            </div>
+            ${i.input ? `<div class="history-input">${i.mode==='reply'?'📩 קיבלה: ':i.mode==='phrase'?'✍️ רצה להגיד: ':i.mode==='check'?'🔍 בדק: ':'📝 הקשר: '}"${esc(i.input)}"</div>` : ''}
+            ${i.checkScore != null ? `<div class="history-out">ציון: ${i.checkScore}/10 · ${esc(i.checkVerdict || '')}</div>` : ''}
+            ${Array.isArray(i.output) ? `
+              <div class="history-out">
+                <div class="history-style-tag">סגנון: ${esc(i.style || '?')}</div>
+                ${i.output.slice(0, 3).map((a, idx) => `<div class="history-answer">${idx+1}. ${esc(a)}</div>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:18px; display:flex; gap:10px;">
+        <button class="btn btn-secondary" id="histClearAll" style="flex:1;">🗑 נקה הכל</button>
+      </div>
+    `}
+  `);
+
+  $$('.history-del').forEach(b => b.addEventListener('click', () => {
+    haptic(15);
+    const ts = Number(b.dataset.ts);
+    deleteCrushInteraction(crush.id, ts);
+    openCrushHistorySheet(crush); // re-render
+  }));
+  $('#histClearAll')?.addEventListener('click', () => {
+    haptic(20);
+    if (!confirm(`למחוק את כל ההיסטוריה עם ${crush.name}?`)) return;
+    clearCrushHistory(crush.id);
+    closeSheet();
+    render();
+    showToast('היסטוריה נמחקה', 'success');
   });
 }
 
