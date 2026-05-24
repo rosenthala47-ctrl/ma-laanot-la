@@ -343,6 +343,13 @@ select.input {
 .mode-tab.active {
   background:var(--grad-1); color:white;
   box-shadow:0 4px 16px rgba(255,46,147,0.35);
+  transform:scale(1.02);
+}
+.mode-tab.active .mode-emoji { animation:tabActivePop 0.4s var(--spring) both; }
+@keyframes tabActivePop {
+  0% { transform:scale(0.8); }
+  60% { transform:scale(1.25); }
+  100% { transform:scale(1); }
 }
 .mode-tab.locked { opacity:0.55; }
 .mode-tab .lock {
@@ -394,6 +401,7 @@ select.input {
 .style-chip.active {
   background:var(--grad-1); color:white; border-color:transparent;
   box-shadow:0 6px 18px rgba(255,46,147,0.4);
+  animation:chipSelect 0.35s var(--spring);
   transform:scale(1.04);
 }
 
@@ -601,6 +609,78 @@ select.input {
   border:1px solid var(--stroke); border-radius:12px;
   padding:14px; font-size:15px; line-height:1.6;
   color:var(--text-1); font-weight:600;
+}
+
+/* Polish: chip selection bounce */
+@keyframes chipSelect {
+  0% { transform:scale(1); }
+  50% { transform:scale(1.08); }
+  100% { transform:scale(1); }
+}
+
+/* Invite / Viral card */
+.invite-card {
+  background:linear-gradient(135deg, rgba(255,46,147,0.10), rgba(85,79,255,0.10));
+  border:1px solid rgba(255,46,147,0.25);
+  text-align:center;
+  position:relative; overflow:hidden;
+}
+.invite-card::before {
+  content:'✨'; position:absolute; top:-12px; right:-8px;
+  font-size:40px; opacity:0.25;
+  animation:sparkleFloat 6s ease-in-out infinite;
+}
+@keyframes sparkleFloat {
+  0%,100% { transform:translate(0,0) rotate(0deg); }
+  50% { transform:translate(-8px,12px) rotate(20deg); }
+}
+.invite-emoji { font-size:36px; margin-bottom:6px; }
+.invite-title {
+  font-weight:800; font-size:16px; color:var(--text-1);
+  margin-bottom:6px;
+}
+.invite-sub {
+  font-size:13px; color:var(--text-3);
+  margin-bottom:12px; line-height:1.5;
+}
+.invite-link-row {
+  display:flex; gap:6px; align-items:stretch;
+}
+.invite-link {
+  flex:1; background:var(--surface); border:1px solid var(--stroke);
+  border-radius:10px; padding:9px 12px; font-size:12px;
+  color:var(--text-2); direction:ltr; text-align:left;
+  font-family:monospace; min-width:0;
+}
+.invite-copy {
+  background:var(--surface-3); border:1px solid var(--stroke);
+  border-radius:10px; padding:0 14px; font-size:13px; font-weight:700;
+  color:var(--text-1); cursor:pointer;
+  transition:all 0.2s var(--ease);
+}
+.invite-copy:active { transform:scale(0.94); }
+.invite-copy.copied {
+  background:var(--green); color:#003822; border-color:var(--green);
+}
+
+/* Confetti burst (used on high check score) */
+.confetti-burst {
+  position:fixed; pointer-events:none;
+  inset:0; overflow:hidden; z-index:9999;
+}
+.confetti-piece {
+  position:absolute; top:30%; left:50%;
+  width:10px; height:10px; border-radius:2px;
+  animation:confettiFall 1.6s ease-out forwards;
+}
+@keyframes confettiFall {
+  0% {
+    opacity:1; transform:translate(0,0) rotate(0deg);
+  }
+  100% {
+    opacity:0;
+    transform:translate(var(--dx, 0px), 60vh) rotate(var(--rot, 540deg));
+  }
 }
 
 /* Crush history timeline */
@@ -2528,6 +2608,17 @@ function renderSettings() {
       <button class="btn btn-secondary" id="editProfile" style="margin-bottom:10px;">✏️ ערוך פרופיל</button>
       <button class="btn btn-secondary" id="goPremium" style="margin-bottom:10px;">💎 ${tier==='free'?'שדרג ל-Premium':'נהל מנוי'}</button>
 
+      <div class="card invite-card" style="margin-bottom:10px;">
+        <div class="invite-emoji">🎁</div>
+        <div class="invite-title">הזמן חברים, קבלו שניכם בונוס</div>
+        <div class="invite-sub">כל חבר שיירשם דרך הקישור שלך — מקבלים שניכם 7 ימי Plus חינם.</div>
+        <div class="invite-link-row">
+          <input class="invite-link" id="inviteLinkInput" readonly value="${esc(buildInviteUrl())}" />
+          <button class="invite-copy" id="inviteCopyBtn">📋 העתק</button>
+        </div>
+        <button class="btn btn-primary" id="shareAppBtn" style="margin-top:10px;">📤 שתף את האפליקציה</button>
+      </div>
+
       <div class="card" style="margin-bottom:10px;">
         <div class="card-title">הגדרות</div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;">
@@ -2547,6 +2638,44 @@ function renderSettings() {
       <div class="muted-note">גרסה 2.0 · עיצוב מחדש</div>
     </div>
   `;
+}
+
+// ---- Polish: confetti burst ----
+function confettiBurst() {
+  const wrap = document.createElement('div');
+  wrap.className = 'confetti-burst';
+  const colors = ['#ff2e93', '#554fff', '#2eceff', '#2ece8a', '#ffb547', '#ff6b9d'];
+  for (let i = 0; i < 30; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.background = colors[i % colors.length];
+    piece.style.setProperty('--dx', (Math.random() * 600 - 300) + 'px');
+    piece.style.setProperty('--rot', (Math.random() * 1080 - 540) + 'deg');
+    piece.style.animationDelay = (Math.random() * 0.2) + 's';
+    wrap.appendChild(piece);
+  }
+  document.body.appendChild(wrap);
+  setTimeout(() => wrap.remove(), 2000);
+}
+
+// ---- Viral / Invite helpers ----
+function buildInviteUrl() {
+  const base = (location.origin + location.pathname).replace(/\/+$/, '');
+  const ref = state.user?.id ? `?ref=${state.user.id}` : '';
+  return base + '/' + ref;
+}
+function captureReferralFromUrl() {
+  try {
+    const u = new URL(location.href);
+    const ref = u.searchParams.get('ref');
+    if (ref && !localStorage.getItem('mll2_referred_by')) {
+      localStorage.setItem('mll2_referred_by', ref);
+      // Clean URL so it doesn't persist visually
+      u.searchParams.delete('ref');
+      history.replaceState(null, '', u.pathname + (u.search ? '?'+u.searchParams.toString() : '') + u.hash);
+      setTimeout(() => showToast('🎁 הוזמנת על ידי חבר! קוד הופעל.', 'success'), 800);
+    }
+  } catch {}
 }
 
 // ===================================================================
@@ -2804,6 +2933,33 @@ function attachHandlers() {
   $('#hapticToggle')?.addEventListener('change', (e) => {
     localStorage.setItem('mll2_haptic', e.target.checked ? '1' : '0');
   });
+  $('#inviteCopyBtn')?.addEventListener('click', async () => {
+    haptic();
+    const url = $('#inviteLinkInput')?.value || buildInviteUrl();
+    try { await navigator.clipboard.writeText(url); }
+    catch {
+      const ta = $('#inviteLinkInput'); if (ta) { ta.select(); document.execCommand('copy'); }
+    }
+    const btn = $('#inviteCopyBtn');
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✓ הועתק!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 1800);
+    }
+  });
+  $('#shareAppBtn')?.addEventListener('click', async () => {
+    haptic();
+    const url = buildInviteUrl();
+    const text = `מה לענות לה? — האפליקציה שעוזרת לי לכתוב הודעות חכמות. הירשם בקישור הזה ושנינו נקבל 7 ימי Plus חינם:\n${url}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'מה לענות לה?', text }); }
+      catch {}
+    } else {
+      try { await navigator.clipboard.writeText(text); showToast('הקישור הועתק — הדבק לחבר 📲', 'success'); }
+      catch { showToast('לא ניתן לשתף בדפדפן הזה', 'error'); }
+    }
+  });
   $('#signOut')?.addEventListener('click', async () => {
     if (!confirm('להתנתק?')) return;
     haptic(20);
@@ -2944,11 +3100,13 @@ function renderResults(answers) {
   $$('.share-act', wrap).forEach(b => b.addEventListener('click', async () => {
     haptic();
     const txt = b.dataset.txt;
+    // Subtle viral footer when sharing externally (not when copying/whatsapping which user wants clean)
+    const shareText = `${txt}\n\n— נכתב בעזרת ✨ מה לענות לה?\n${buildInviteUrl()}`;
     if (navigator.share) {
-      try { await navigator.share({ text: txt }); }
+      try { await navigator.share({ text: shareText }); }
       catch {}
     } else {
-      try { await navigator.clipboard.writeText(txt); showToast('הועתק (שיתוף לא נתמך בדפדפן)', 'success'); }
+      try { await navigator.clipboard.writeText(shareText); showToast('הועתק (שיתוף לא נתמך בדפדפן)', 'success'); }
       catch { showToast('לא ניתן לשתף', 'error'); }
     }
   }));
@@ -3040,6 +3198,11 @@ function renderCheckResult(r) {
     haptic();
     window.open(`https://wa.me/?text=${encodeURIComponent(b.dataset.txt)}`, '_blank');
   }));
+
+  // Polish: celebrate high score 🎉
+  if (score >= 8) {
+    setTimeout(() => confettiBurst(), 200);
+  }
 }
 
 // ===================================================================
@@ -3471,6 +3634,7 @@ async function handleStripeReturn() {
 // ===================================================================
 
 async function init() {
+  captureReferralFromUrl(); // ?ref=USERID → save to localStorage for future credit
   render(); // boot screen
 
   const { data: { session } } = await sb.auth.getSession();
