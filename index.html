@@ -327,18 +327,18 @@ select.input {
 
 /* =================== MODE TABS =================== */
 .mode-tabs {
-  display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:5px;
   background:var(--surface); border:1px solid var(--stroke);
   border-radius:18px; padding:5px; margin-bottom:16px;
 }
 .mode-tab {
   background:transparent; border:none; color:var(--text-3);
-  padding:10px 6px; border-radius:14px; cursor:pointer;
-  font-size:13px; font-weight:700;
-  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:9px 3px; border-radius:14px; cursor:pointer;
+  font-size:12px; font-weight:700;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
   transition:all 0.3s var(--ease); position:relative;
 }
-.mode-tab .mode-emoji { font-size:18px; }
+.mode-tab .mode-emoji { font-size:17px; }
 .mode-tab:active { transform:scale(0.95); }
 .mode-tab.active {
   background:var(--grad-1); color:white;
@@ -536,6 +536,72 @@ select.input {
   background:#25D366; color:#003814; border-color:#25D366;
 }
 .action-btn.wa:active { background:#1bb858; }
+
+/* Rating row inside reply bubble */
+.rating-row {
+  display:flex; align-items:center; gap:8px;
+  margin-top:10px; padding-top:10px;
+  border-top:1px dashed var(--stroke);
+}
+.rating-prompt {
+  font-size:12px; color:var(--text-3); margin-left:auto;
+}
+.rate-btn {
+  background:var(--surface-3); border:1px solid var(--stroke);
+  width:36px; height:36px; border-radius:10px;
+  font-size:18px; cursor:pointer; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.2s var(--ease);
+}
+.rate-btn:active { transform:scale(0.9); }
+.rate-btn.active {
+  background:var(--grad-1); border-color:transparent;
+  box-shadow:0 4px 12px rgba(255,46,147,0.35);
+}
+
+/* Check-message result panel */
+.check-result {
+  display:flex; flex-direction:column; gap:16px;
+}
+.check-score {
+  background:var(--surface); border:1px solid var(--stroke);
+  border-radius:20px; padding:22px 18px; text-align:center;
+  border-top:4px solid var(--clr);
+}
+.check-emoji { font-size:36px; margin-bottom:6px; }
+.check-num {
+  font-size:48px; font-weight:900; color:var(--clr);
+  line-height:1; margin-bottom:8px;
+}
+.check-of { font-size:22px; color:var(--text-3); font-weight:700; }
+.check-verdict {
+  font-size:15px; font-weight:600; color:var(--text-1);
+}
+.check-section {
+  background:var(--surface); border:1px solid var(--stroke);
+  border-radius:16px; padding:14px 16px;
+}
+.check-section-title {
+  font-size:14px; font-weight:800; color:var(--text-1);
+  margin-bottom:10px;
+}
+.check-list {
+  list-style:none; padding:0; margin:0;
+  display:flex; flex-direction:column; gap:8px;
+}
+.check-list li {
+  background:var(--surface-3); border-radius:10px;
+  padding:9px 12px; font-size:13px; line-height:1.5;
+  border-right:3px solid var(--stroke);
+}
+.check-list.red li { border-right-color:#ff4d6d; }
+.check-list.green li { border-right-color:#2ece8a; }
+.check-rewrite {
+  background:linear-gradient(135deg, rgba(255,46,147,0.10), rgba(85,79,255,0.10));
+  border:1px solid var(--stroke); border-radius:12px;
+  padding:14px; font-size:15px; line-height:1.6;
+  color:var(--text-1); font-weight:600;
+}
 
 /* =================== LOADING =================== */
 .loading-zone {
@@ -1487,6 +1553,10 @@ async function generateAnswers() {
     const intent = $('#phraseInput')?.value.trim();
     if (!intent) { showToast('כתוב מה אתה רוצה להגיד', 'error'); return null; }
     payload = { ...base, mode:'phrase', intent };
+  } else if (state.appMode === 'check') {
+    const text = $('#checkInput')?.value.trim();
+    if (!text) { showToast('הדבק את ההודעה לבדיקה', 'error'); return null; }
+    payload = { ...base, mode:'check', text };
   } else if (state.inputMode === 'image') {
     if (!state.imageBase64) { showToast('צרף תמונה קודם', 'error'); return null; }
     payload = { ...base, mode:'image', imageBase64:state.imageBase64, imageMediaType:state.imageMediaType };
@@ -1495,7 +1565,7 @@ async function generateAnswers() {
     if (!text) { showToast('הדבק את ההודעה שקיבלת', 'error'); return null; }
     payload = { ...base, mode:'text', text };
   }
-  console.log('[reply-source] requesting from Claude backend, situation=' + payload.situation + ', style=' + payload.style);
+  console.log('[reply-source] requesting from Claude backend, mode=' + payload.mode + ', situation=' + payload.situation + ', style=' + payload.style);
   const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
@@ -1508,6 +1578,12 @@ async function generateAnswers() {
     throw new Error(m);
   }
   const d = await r.json();
+  // Check mode returns a different shape: { score, verdict, redFlags, strengths, rewrite }
+  if (payload.mode === 'check') {
+    if (typeof d.score !== 'number') throw new Error('תשובה לא תקינה');
+    console.log('[reply-source] ✓ got check result from Claude');
+    return { __check: true, ...d };
+  }
   if (!Array.isArray(d.answers)) throw new Error('תשובה לא תקינה');
   console.log('[reply-source] ✓ got ' + d.answers.length + ' replies from Claude (Anthropic API)');
   return d.answers;
@@ -1807,6 +1883,9 @@ function renderHome() {
         ${!limits.hasPhrase?'<span class="lock">🔒</span>':''}
         <div class="mode-emoji">✍️</div><div>ניסוח</div>
       </button>
+      <button class="mode-tab ${state.appMode==='check'?'active':''}" data-mode="check">
+        <div class="mode-emoji">🔍</div><div>בדוק</div>
+      </button>
     </div>
 
     <div class="crush-row" id="crushPicker">
@@ -1820,31 +1899,33 @@ function renderHome() {
 
     ${renderInputArea()}
 
-    <div class="card">
-      <div class="card-title">🎯 מה המצב?</div>
-      <div class="styles-scroll" id="situationsScroll">
-        ${SITUATIONS.map(s => `
-          <button class="style-chip ${state.selectedSituation===s.id?'active':''}" data-situation="${s.id}">
-            <span class="se">${s.emoji}</span><span>${s.label}</span>
-          </button>`).join('')}
+    ${state.appMode !== 'check' ? `
+      <div class="card">
+        <div class="card-title">🎯 מה המצב?</div>
+        <div class="styles-scroll" id="situationsScroll">
+          ${SITUATIONS.map(s => `
+            <button class="style-chip ${state.selectedSituation===s.id?'active':''}" data-situation="${s.id}">
+              <span class="se">${s.emoji}</span><span>${s.label}</span>
+            </button>`).join('')}
+        </div>
       </div>
-    </div>
 
-    <div class="card">
-      <div class="card-title">🎭 איזה סגנון?</div>
-      <div class="styles-scroll" id="stylesScroll">
-        ${STYLES.map(s => {
-          const isLocked = (getLimits().lockedStyles||[]).includes(s.id);
-          return `<button class="style-chip ${state.selectedStyle===s.id?'active':''} ${isLocked?'locked':''}" data-style="${s.id}" data-locked="${isLocked}">
-            <span class="se">${s.emoji}</span><span>${s.label}</span>
-          </button>`;
-        }).join('')}
+      <div class="card">
+        <div class="card-title">🎭 איזה סגנון?</div>
+        <div class="styles-scroll" id="stylesScroll">
+          ${STYLES.map(s => {
+            const isLocked = (getLimits().lockedStyles||[]).includes(s.id);
+            return `<button class="style-chip ${state.selectedStyle===s.id?'active':''} ${isLocked?'locked':''}" data-style="${s.id}" data-locked="${isLocked}">
+              <span class="se">${s.emoji}</span><span>${s.label}</span>
+            </button>`;
+          }).join('')}
+        </div>
       </div>
-    </div>
+    ` : ''}
 
     <button class="fab-generate" id="genBtn">
-      <span class="sparkle">✨</span>
-      <span>${state.appMode==='opener'?'תן לי פתיחות':state.appMode==='phrase'?'תן לי ניסוחים':'תן לי תשובות'}</span>
+      <span class="sparkle">${state.appMode==='check'?'🔍':'✨'}</span>
+      <span>${state.appMode==='opener'?'תן לי פתיחות':state.appMode==='phrase'?'תן לי ניסוחים':state.appMode==='check'?'בדוק את ההודעה שלי':'תן לי תשובות'}</span>
     </button>
 
     ${remaining !== Infinity ? `
@@ -1879,6 +1960,19 @@ function renderInputArea() {
         <div class="card-title">✍️ מה אתה רוצה להגיד?</div>
         <div class="input-bubble">
           <textarea id="phraseInput" placeholder="כתוב במשפט פשוט, ואני אנסח לך אותו בכמה דרכים..."></textarea>
+        </div>
+      </div>
+    `;
+  }
+  if (state.appMode === 'check') {
+    return `
+      <div class="card">
+        <div class="card-title">🔍 ההודעה שאתה רוצה לבדוק לפני שאתה שולח</div>
+        <div class="input-bubble">
+          <textarea id="checkInput" placeholder="הדבק את ההודעה שכתבת ואני אגיד לך אם זה טוב לשליחה, מה הבעיות, ואיך לשפר..."></textarea>
+        </div>
+        <div class="text-dim" style="font-size:12px;margin-top:8px;line-height:1.5;">
+          💡 אני אבדוק נואשות, אורך, קלישאות, מחמאות גוף — כל מה שיכול לדפוק לך את ההודעה. ואני אציע ניסוח טוב יותר.
         </div>
       </div>
     `;
@@ -2636,7 +2730,7 @@ async function handleGenerate() {
   const loadText = $('#loadText');
   if (results) results.innerHTML = '';
   if (load) load.classList.add('active');
-  if (loadText) loadText.textContent = state.appMode==='opener' ? 'בונה פתיחות מנצחות...' : state.appMode==='phrase' ? 'מנסח לך אופציות...' : state.inputMode==='image' ? 'קורא את הצילום...' : 'חושב על תשובות מבריקות...';
+  if (loadText) loadText.textContent = state.appMode==='opener' ? 'בונה פתיחות מנצחות...' : state.appMode==='phrase' ? 'מנסח לך אופציות...' : state.appMode==='check' ? 'בודק את ההודעה שלך...' : state.inputMode==='image' ? 'קורא את הצילום...' : 'חושב על תשובות מבריקות...';
   if (btn) btn.disabled = true;
 
   try {
@@ -2644,7 +2738,11 @@ async function handleGenerate() {
     if (answers) {
       bumpUsage();
       const s = bumpStreak();
-      renderResults(answers);
+      if (answers.__check) {
+        renderCheckResult(answers);
+      } else {
+        renderResults(answers);
+      }
       results?.scrollIntoView({ behavior:'smooth', block:'start' });
       haptic(15);
       if (s.count === 1) showToast('🔥 התחלת רצף חדש!', 'success');
@@ -2668,7 +2766,10 @@ function renderResults(answers) {
       <div class="results-title">✨ ${answers.length} ${state.appMode==='opener'?'פתיחות':state.appMode==='phrase'?'ניסוחים':'תשובות'}</div>
       <div class="results-meta">${style?style.emoji+' '+style.label:''}</div>
     </div>
-    ${answers.map((a, i) => `
+    ${answers.map((a, i) => {
+      const ratingKey = encodeURIComponent((state.appMode||'')+'|'+(state.selectedStyle||'')+'|'+a).slice(0, 200);
+      const savedRating = getReplyRating(ratingKey);
+      return `
       <div class="bubble">
         <div class="bubble-tag">#${i+1}</div>
         <div class="bubble-text">${esc(a)}</div>
@@ -2677,9 +2778,27 @@ function renderResults(answers) {
           <button class="action-btn wa wa-act" data-txt="${esc(a)}">💚 WhatsApp</button>
           <button class="action-btn share-act" data-txt="${esc(a)}">📤 שתף</button>
         </div>
+        <div class="rating-row">
+          <span class="rating-prompt">איך התשובה הזו?</span>
+          <button class="rate-btn ${savedRating==='up'?'active':''}" data-rate="up" data-key="${esc(ratingKey)}">👍</button>
+          <button class="rate-btn ${savedRating==='down'?'active':''}" data-rate="down" data-key="${esc(ratingKey)}">👎</button>
+        </div>
       </div>
-    `).join('')}
+    `;}).join('')}
   `;
+
+  // Wire rating buttons
+  $$('.rate-btn', wrap).forEach(b => b.addEventListener('click', () => {
+    haptic();
+    const key = b.dataset.key;
+    const rate = b.dataset.rate;
+    saveReplyRating(key, rate);
+    // Visual feedback: clear siblings, mark this one
+    const row = b.closest('.rating-row');
+    if (row) row.querySelectorAll('.rate-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    showToast(rate==='up' ? 'תודה! זה עוזר לי להשתפר 🙏' : 'הבנתי, לא חיבבת. אשתפר 💪', 'success');
+  }));
 
   $$('.copy-act', wrap).forEach(b => b.addEventListener('click', async () => {
     haptic();
@@ -2710,6 +2829,94 @@ function renderResults(answers) {
       try { await navigator.clipboard.writeText(txt); showToast('הועתק (שיתוף לא נתמך בדפדפן)', 'success'); }
       catch { showToast('לא ניתן לשתף', 'error'); }
     }
+  }));
+}
+
+// ---- Reply rating storage (local) ----
+function getReplyRatings() {
+  try { return JSON.parse(localStorage.getItem('replyRatings') || '{}'); }
+  catch { return {}; }
+}
+function getReplyRating(key) {
+  return getReplyRatings()[key] || null;
+}
+function saveReplyRating(key, rate) {
+  const all = getReplyRatings();
+  all[key] = rate;
+  // keep size bounded (last 300 entries)
+  const keys = Object.keys(all);
+  if (keys.length > 300) {
+    keys.slice(0, keys.length - 300).forEach(k => delete all[k]);
+  }
+  try { localStorage.setItem('replyRatings', JSON.stringify(all)); } catch {}
+}
+
+// ---- Check-message result rendering ----
+function renderCheckResult(r) {
+  const wrap = $('#resultsWrap');
+  if (!wrap) return;
+  const score = Math.max(0, Math.min(10, Number(r.score)||0));
+  // color and label by score
+  let color, label, emoji;
+  if (score >= 8)      { color = '#2ece8a'; label = 'תשלח. זה טוב.'; emoji = '✅'; }
+  else if (score >= 5) { color = '#ffb547'; label = 'אפשר לשלוח, אבל יש שיפור.'; emoji = '⚠️'; }
+  else                 { color = '#ff4d6d'; label = 'אל תשלח. תשפץ קודם.'; emoji = '🚫'; }
+
+  const flags = Array.isArray(r.redFlags) ? r.redFlags : [];
+  const strengths = Array.isArray(r.strengths) ? r.strengths : [];
+  const rewrite = r.rewrite || '';
+
+  wrap.innerHTML = `
+    <div class="check-result">
+      <div class="check-score" style="--clr:${color};">
+        <div class="check-emoji">${emoji}</div>
+        <div class="check-num">${score}<span class="check-of">/10</span></div>
+        <div class="check-verdict">${esc(r.verdict || label)}</div>
+      </div>
+
+      ${flags.length ? `
+        <div class="check-section">
+          <div class="check-section-title">🚩 דגלים אדומים</div>
+          <ul class="check-list red">
+            ${flags.map(f => `<li>${esc(f)}</li>`).join('')}
+          </ul>
+        </div>
+      ` : `<div class="check-section"><div class="check-section-title">🚩 דגלים אדומים</div><div class="text-dim" style="font-size:13px;padding:6px 0;">לא נמצאו דגלים אדומים — יפה!</div></div>`}
+
+      ${strengths.length ? `
+        <div class="check-section">
+          <div class="check-section-title">✨ מה כן עובד</div>
+          <ul class="check-list green">
+            ${strengths.map(s => `<li>${esc(s)}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      ${rewrite ? `
+        <div class="check-section">
+          <div class="check-section-title">💡 ניסוח טוב יותר</div>
+          <div class="check-rewrite">${esc(rewrite)}</div>
+          <div class="bubble-actions" style="margin-top:8px;">
+            <button class="action-btn copy-act" data-txt="${esc(rewrite)}">📋 העתק ניסוח</button>
+            <button class="action-btn wa wa-act" data-txt="${esc(rewrite)}">💚 WhatsApp</button>
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  // Wire copy/wa for rewrite
+  $$('.copy-act', wrap).forEach(b => b.addEventListener('click', async () => {
+    haptic();
+    const txt = b.dataset.txt;
+    try { await navigator.clipboard.writeText(txt); } catch {}
+    const orig = b.innerHTML;
+    b.classList.add('copied'); b.innerHTML = '✓ הועתק!';
+    setTimeout(() => { b.classList.remove('copied'); b.innerHTML = orig; }, 1800);
+  }));
+  $$('.wa-act', wrap).forEach(b => b.addEventListener('click', () => {
+    haptic();
+    window.open(`https://wa.me/?text=${encodeURIComponent(b.dataset.txt)}`, '_blank');
   }));
 }
 
