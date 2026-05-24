@@ -2149,6 +2149,113 @@ function saveCoachHistory(entry) {
   localStorage.setItem(`mll2_coach_history_${state.user.id}`, JSON.stringify(hist.slice(0, 20)));
 }
 
+// ---- Cloud sync (Wave 5) — best-effort, falls back to localStorage silently ----
+async function cloudSaveInteraction(crushId, interaction) {
+  if (!state.user?.id || !crushId || !sb) return;
+  try {
+    await sb.from('crush_interactions').insert({
+      crush_id: crushId,
+      user_id: state.user.id,
+      mode: interaction.mode || null,
+      style: interaction.style || null,
+      situation: interaction.situation || null,
+      input: interaction.input || null,
+      output: interaction.output || null,
+      check_score: interaction.checkScore ?? null,
+      check_verdict: interaction.checkVerdict || null,
+    });
+  } catch (e) { console.warn('[cloud] save interaction failed:', e?.message); }
+}
+
+async function cloudLoadAllInteractions() {
+  if (!state.user?.id || !sb) return {};
+  try {
+    const { data, error } = await sb.from('crush_interactions')
+      .select('*').eq('user_id', state.user.id)
+      .order('created_at', { ascending: false }).limit(500);
+    if (error) throw error;
+    const byCrush = {};
+    (data || []).forEach(row => {
+      if (!byCrush[row.crush_id]) byCrush[row.crush_id] = [];
+      byCrush[row.crush_id].push({
+        mode: row.mode,
+        style: row.style,
+        situation: row.situation,
+        input: row.input,
+        output: row.output,
+        checkScore: row.check_score,
+        checkVerdict: row.check_verdict,
+        ts: new Date(row.created_at).getTime(),
+        cloudId: row.id,
+      });
+    });
+    return byCrush;
+  } catch (e) { console.warn('[cloud] load interactions failed:', e?.message); return {}; }
+}
+
+async function cloudDeleteInteraction(crushId, ts) {
+  if (!state.user?.id || !sb) return;
+  try {
+    // find by ts → created_at; we store cloudId locally too if available
+    const local = getCrushInteractions(crushId).find(i => i.ts === ts);
+    if (local?.cloudId) {
+      await sb.from('crush_interactions').delete().eq('id', local.cloudId);
+    }
+  } catch (e) { console.warn('[cloud] delete interaction failed:', e?.message); }
+}
+
+async function cloudClearCrushHistory(crushId) {
+  if (!state.user?.id || !sb || !crushId) return;
+  try { await sb.from('crush_interactions').delete().eq('crush_id', crushId).eq('user_id', state.user.id); }
+  catch (e) { console.warn('[cloud] clear failed:', e?.message); }
+}
+
+async function cloudSaveRating(key, rate) {
+  if (!state.user?.id || !sb) return;
+  try {
+    await sb.from('reply_ratings').upsert({
+      user_id: state.user.id,
+      rating_key: key,
+      rating: rate,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,rating_key' });
+  } catch (e) { console.warn('[cloud] save rating failed:', e?.message); }
+}
+
+async function cloudLoadAllRatings() {
+  if (!state.user?.id || !sb) return {};
+  try {
+    const { data, error } = await sb.from('reply_ratings')
+      .select('rating_key, rating').eq('user_id', state.user.id);
+    if (error) throw error;
+    const map = {};
+    (data || []).forEach(r => { map[r.rating_key] = r.rating; });
+    return map;
+  } catch (e) { console.warn('[cloud] load ratings failed:', e?.message); return {}; }
+}
+
+// Pull cloud data into localStorage on app boot/login (cloud is source of truth)
+async function pullCloudData() {
+  if (!state.user?.id) return;
+  try {
+    const [cloudHist, cloudRatings] = await Promise.all([
+      cloudLoadAllInteractions(),
+      cloudLoadAllRatings(),
+    ]);
+    // Replace local crush history with cloud (cloud is canonical)
+    if (cloudHist && Object.keys(cloudHist).length > 0) {
+      localStorage.setItem(`mll2_crush_history_${state.user.id}`, JSON.stringify(cloudHist));
+    }
+    // Merge ratings: cloud wins
+    if (cloudRatings && Object.keys(cloudRatings).length > 0) {
+      const local = (function() { try { return JSON.parse(localStorage.getItem('replyRatings')||'{}'); } catch { return {}; } })();
+      const merged = { ...local, ...cloudRatings };
+      localStorage.setItem('replyRatings', JSON.stringify(merged));
+    }
+    console.log('[cloud] sync complete');
+  } catch (e) { console.warn('[cloud] pull failed:', e?.message); }
+}
+
 // ---- Per-crush conversation history (Wave 3 memory) ----
 function getCrushHistoryAll() {
   if (!state.user?.id) return {};
@@ -2166,9 +2273,12 @@ function saveCrushInteraction(crushId, interaction) {
     const key = `mll2_crush_history_${state.user.id}`;
     const all = getCrushHistoryAll();
     if (!all[crushId]) all[crushId] = [];
-    all[crushId].unshift({ ...interaction, ts: Date.now() });
+    const entry = { ...interaction, ts: Date.now() };
+    all[crushId].unshift(entry);
     all[crushId] = all[crushId].slice(0, 30); // keep last 30 per crush
     localStorage.setItem(key, JSON.stringify(all));
+    // fire-and-forget cloud sync
+    cloudSaveInteraction(crushId, entry);
   } catch {}
 }
 function deleteCrushInteraction(crushId, ts) {
@@ -2177,6 +2287,7 @@ function deleteCrushInteraction(crushId, ts) {
     const key = `mll2_crush_history_${state.user.id}`;
     const all = getCrushHistoryAll();
     if (!all[crushId]) return;
+    cloudDeleteInteraction(crushId, ts); // before we strip the cloudId locally
     all[crushId] = all[crushId].filter(i => i.ts !== ts);
     localStorage.setItem(key, JSON.stringify(all));
   } catch {}
@@ -2188,6 +2299,7 @@ function clearCrushHistory(crushId) {
     const all = getCrushHistoryAll();
     delete all[crushId];
     localStorage.setItem(key, JSON.stringify(all));
+    cloudClearCrushHistory(crushId);
   } catch {}
 }
 // Build short context string from recent interactions for prompt injection
@@ -2630,6 +2742,16 @@ function renderSettings() {
             <input type="checkbox" id="hapticToggle" ${localStorage.getItem('mll2_haptic')==='0'?'':'checked'} />
             <span class="toggle-track"></span>
           </label>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:24px;">☁️</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">סינכרון לענן</div>
+            <div class="text-dim" style="font-size:12px;">היסטוריית שיחה ודירוגי 👍👎 נשמרים בענן ועוברים בין מכשירים. אוטומטי.</div>
+          </div>
         </div>
       </div>
 
@@ -3129,6 +3251,8 @@ function saveReplyRating(key, rate) {
     keys.slice(0, keys.length - 300).forEach(k => delete all[k]);
   }
   try { localStorage.setItem('replyRatings', JSON.stringify(all)); } catch {}
+  // fire-and-forget cloud sync
+  cloudSaveRating(key, rate);
 }
 
 // ---- Check-message result rendering ----
@@ -3642,6 +3766,7 @@ async function init() {
     state.user = session.user;
     await loadProfile();
     await loadCrushes();
+    pullCloudData(); // fire-and-forget — populates local history/ratings from cloud
     afterAuth();
   } else {
     state.screen = 'auth';
@@ -3657,6 +3782,7 @@ async function init() {
       state.user = sess.user;
       await loadProfile();
       await loadCrushes();
+      pullCloudData(); // fire-and-forget — sync history/ratings from cloud
       afterAuth();
     }
   });
