@@ -1447,18 +1447,20 @@ const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const TIER_LIMITS = {
   free: {
-    dailyGenerations:8, crushProfiles:1,
+    dailyGenerations:5, crushProfiles:1,
     hasOpener:false, hasPhrase:false,
     hasCoach:false, hasCoachDeep:false,
     hasImageUpload:false, hasMemory:false, hasPriority:false,
+    hasCloudSync:false,
     ads:true,
-    lockedStyles:['flirty','romantic','cold','confident','dry'],
+    lockedStyles:[],
   },
   plus: {
-    dailyGenerations:80, crushProfiles:5,
+    dailyGenerations:Infinity, crushProfiles:10,
     hasOpener:true, hasPhrase:true,
     hasCoach:true, hasCoachDeep:false,
     hasImageUpload:false, hasMemory:false, hasPriority:false,
+    hasCloudSync:true,
     ads:false,
     lockedStyles:[],
   },
@@ -1467,13 +1469,14 @@ const TIER_LIMITS = {
     hasOpener:true, hasPhrase:true,
     hasCoach:true, hasCoachDeep:true,
     hasImageUpload:true, hasMemory:true, hasPriority:true,
+    hasCloudSync:true,
     ads:false,
     lockedStyles:[],
   },
 };
 const PRICING = {
-  plus: { monthly:24.90, yearly:249 },
-  pro:  { monthly:59.90, yearly:599 },
+  plus: { monthly:24.90, yearly:199 },
+  pro:  { monthly:49.90, yearly:399 },
 };
 const fmtPrice = (n) => Number.isInteger(n) ? `₪${n}` : `₪${n.toFixed(2)}`;
 const TIER_LABELS = {
@@ -1859,17 +1862,17 @@ function renderPaywallOnboarding() {
 
     <div class="value-prop-list">
       <div class="value-prop">
-        <div class="vp-icon">🧠</div>
+        <div class="vp-icon">♾️</div>
         <div class="vp-info">
-          <div class="vp-title">AI Coach שמנתח כל שיחה</div>
-          <div class="vp-desc">מודד רמת עניין, חושף סיגנלים שפספסת, ונותן 5 תשובות לכל מצב.</div>
+          <div class="vp-title">תשובות ללא הגבלה</div>
+          <div class="vp-desc">בלי לספור, בלי לחיצות לחץ. כותב כמה שצריך, מתי שצריך.</div>
         </div>
       </div>
       <div class="value-prop">
-        <div class="vp-icon">⏰</div>
+        <div class="vp-icon">🧠</div>
         <div class="vp-info">
-          <div class="vp-title">תזמון מושלם</div>
-          <div class="vp-desc">מתי לענות, מתי לחכות, מתי לשנות נושא. AI שיודע מה עובד.</div>
+          <div class="vp-title">AI Coach שמנתח כל שיחה</div>
+          <div class="vp-desc">מודד רמת עניין, חושף סיגנלים שפספסת, ונותן ייעוץ תזמון מדויק.</div>
         </div>
       </div>
       <div class="value-prop">
@@ -1947,9 +1950,9 @@ function renderBottomNav() {
 function renderSmartUpsell(remaining) {
   let icon, title, desc;
   if (remaining === 0) {
-    icon = '🚀'; title = 'הגעת למקסימום היומי'; desc = 'שדרג לקבל 80 ביום (Plus) או בלי הגבלה (Pro)';
+    icon = '🚀'; title = 'הגעת למקסימום היומי'; desc = 'שדרג ל-Plus לקבל תשובות ללא הגבלה';
   } else if (remaining <= 2) {
-    icon = '⚡'; title = `${remaining} תשובות נשארו`; desc = 'שדרג לקבל פי 10 + AI Coach + בלי פרסומות';
+    icon = '⚡'; title = `${remaining} תשובות נשארו`; desc = 'שדרג ל-Plus — תשובות בלי הגבלה + AI Coach';
   } else {
     const teasers = [
       { i:'🧠', t:'פתח את ה-AI Coach', d:'נתח כל שיחה, דע בדיוק מה לכתוב' },
@@ -2369,11 +2372,12 @@ function renderCoach() {
 
         <div class="coach-section-title">מה תקבל ב-Plus</div>
         <ul class="lock-features">
+          <li>♾️ תשובות AI ללא הגבלה</li>
           <li>📊 מד עניין מדויק עם נימוקים</li>
-          <li>🎯 5 סגנונות תשובה לכל מצב</li>
           <li>⏰ ייעוץ תזמון — מתי לענות, מתי לחכות</li>
           <li>🚨 מצב SOS — תשובה מהירה כשצריך</li>
-          <li>💡 טיפים אישיים על הצד השני</li>
+          <li>🚀 פתיחת שיחה + ✍️ עזרת ניסוח</li>
+          <li>☁️ סינכרון בין מכשירים</li>
         </ul>
         <button class="pw-cta glow" id="coachUpgrade2" style="margin-top:6px;">⭐ התחל ניסיון 7 ימים חינם</button>
       </div>
@@ -2613,15 +2617,15 @@ function renderPremium() {
     <div class="pw-card ${tier==='free'?'current':''}">
       ${tier==='free'?'<span class="pw-tag now">המנוי שלך</span>':''}
       <div class="pw-name">🆓 חינם</div>
-      <div class="pw-tier-title">להתחיל</div>
+      <div class="pw-tier-title">להכיר את האפליקציה</div>
       <div class="pw-price"><span class="amount">₪0</span><span class="per">לתמיד</span></div>
       <ul class="pw-feats">
-        <li><span class="check">✓</span>8 תשובות AI ליום</li>
-        <li><span class="check">✓</span>3 סגנונות בסיסיים</li>
+        <li><span class="check">✓</span>5 תשובות AI ליום</li>
+        <li><span class="check">✓</span>כל 8 סגנונות התשובה</li>
         <li><span class="check">✓</span>פרופיל קראש אחד</li>
-        <li class="off"><span class="check">×</span>בלי "פתיחת שיחה" / "עזרת ניסוח"</li>
+        <li class="off"><span class="check">×</span>בלי פתיחת שיחה / עזרת ניסוח</li>
         <li class="off"><span class="check">×</span>בלי AI Coach וניתוח שיחה</li>
-        <li class="off"><span class="check">×</span>בלי העלאת צילומי מסך</li>
+        <li class="off"><span class="check">×</span>בלי סינכרון בין מכשירים</li>
         <li class="off"><span class="check">×</span>פרסומות מופיעות</li>
       </ul>
     </div>
@@ -2630,7 +2634,7 @@ function renderPremium() {
     <div class="pw-card recommended ${tier==='plus'?'current':''}">
       ${tier==='plus'?'<span class="pw-tag now">המנוי שלך</span>':'<span class="pw-tag">⭐ הכי פופולרי</span>'}
       <div class="pw-name">⭐ PLUS</div>
-      <div class="pw-tier-title">להיות בקצה</div>
+      <div class="pw-tier-title">הכלי היומיומי</div>
       <div class="pw-price">
         <span class="amount">${fmtPrice(plus)}</span>
         <span class="per">/ ${isYr?'שנה':'חודש'}</span>
@@ -2638,14 +2642,14 @@ function renderPremium() {
       ${isYr?`<div class="pw-yearly-hint">≈ ${fmtPrice(plusMo)} לחודש · חסוך ${plusSave}%</div>`:''}
       <div class="pw-trial">🎁 7 ימי ניסיון חינם · בלי התחייבות</div>
       <ul class="pw-feats">
-        <li><span class="check">✓</span><span class="highlight">80 תשובות ביום</span> (פי 10 מחינם)</li>
-        <li><span class="check">✓</span>כל 8 סגנונות התשובה פתוחים</li>
-        <li><span class="check">✓</span>פתיחות שיחה + עזרת ניסוח</li>
-        <li><span class="check">✓</span>🧠 AI Chat Coach — ניתוח שיחה</li>
-        <li><span class="check">✓</span>📊 מד עניין (Interest Meter)</li>
-        <li><span class="check">✓</span>⏰ ייעוץ תזמון</li>
+        <li><span class="check">✓</span><span class="highlight">♾️ תשובות ללא הגבלה</span> — בלי לספור</li>
+        <li><span class="check">✓</span>כל 8 הסגנונות פתוחים</li>
+        <li><span class="check">✓</span>🚀 פתיחת שיחה + ✍️ עזרת ניסוח</li>
+        <li><span class="check">✓</span>🧠 AI Chat Coach — ניתוח שיחה מלא</li>
+        <li><span class="check">✓</span>📊 מד עניין + סיגנלים + ייעוץ תזמון</li>
         <li><span class="check">✓</span>🚨 מצב SOS — תשובה מהירה</li>
-        <li><span class="check">✓</span>עד 5 פרופילי קראש</li>
+        <li><span class="check">✓</span>עד 10 פרופילי קראש</li>
+        <li><span class="check">✓</span>☁️ סינכרון בין מכשירים</li>
         <li><span class="check">✓</span>בלי פרסומות</li>
       </ul>
       ${tier!=='plus'?`<button class="pw-cta glow" data-buy="plus">${tier==='pro'?'עבור ל-Plus':'התחל ניסיון 7 ימים חינם'}</button>`:''}
@@ -2653,9 +2657,9 @@ function renderPremium() {
 
     <!-- PRO -->
     <div class="pw-card ${tier==='pro'?'current':''}" style="${tier==='pro'?'':'border-color:rgba(46,206,255,0.3);'}">
-      ${tier==='pro'?'<span class="pw-tag now">המנוי שלך</span>':'<span class="pw-tag" style="background:linear-gradient(135deg,#2eceff,#9a2eff);">🔥 הכי מתקדם</span>'}
+      ${tier==='pro'?'<span class="pw-tag now">המנוי שלך</span>':'<span class="pw-tag" style="background:linear-gradient(135deg,#2eceff,#9a2eff);">🔥 לדייטרים רציניים</span>'}
       <div class="pw-name">💎 PRO</div>
-      <div class="pw-tier-title">לכבוש את הכל</div>
+      <div class="pw-tier-title">המקסימום</div>
       <div class="pw-price">
         <span class="amount">${fmtPrice(pro)}</span>
         <span class="per">/ ${isYr?'שנה':'חודש'}</span>
@@ -2664,15 +2668,15 @@ function renderPremium() {
       <div class="pw-trial">🎁 7 ימי ניסיון חינם · ביטול בכל רגע</div>
       <ul class="pw-feats">
         <li><span class="check">✓</span><span class="highlight">כל מה ש-Plus נותן, ועוד:</span></li>
-        <li><span class="check">✓</span>♾️ תשובות בלי הגבלה</li>
-        <li><span class="check">✓</span>📸 העלאת צילומי מסך לניתוח</li>
-        <li><span class="check">✓</span>🔬 ניתוח עמוק של מערכת היחסים</li>
-        <li><span class="check">✓</span>🧬 זיהוי אישיות וטון</li>
-        <li><span class="check">✓</span>📈 היסטוריית שיחות + אנליטיקס</li>
-        <li><span class="check">✓</span>🎯 הצעות אסטרטגיה מותאמות</li>
-        <li><span class="check">✓</span>⚡ תשובות עם עדיפות (מהיר יותר)</li>
+        <li><span class="check">✓</span>📸 העלאת צילומי מסך מ-WhatsApp</li>
+        <li><span class="check">✓</span>🧬 Deep Coach — ניתוח אישיות וטון</li>
+        <li><span class="check">✓</span>🔬 ניתוח מסלול היחסים לאורך זמן</li>
+        <li><span class="check">✓</span>🎯 מצב אסטרטגיה — תוכנית לכל קראש</li>
+        <li><span class="check">✓</span>📈 אנליטיקס מתקדם והיסטוריה מלאה</li>
+        <li><span class="check">✓</span>⚡ עדיפות בתור — תשובות מהירות יותר</li>
         <li><span class="check">✓</span>🚀 גישה מוקדמת לפיצ'רים חדשים</li>
-        <li><span class="check">✓</span>פרופילי קראש ללא הגבלה</li>
+        <li><span class="check">✓</span>♾️ פרופילי קראש ללא הגבלה</li>
+        <li><span class="check">✓</span>💬 תמיכה מועדפת</li>
       </ul>
       ${tier!=='pro'?`<button class="pw-cta primary" data-buy="pro">${tier==='plus'?'שדרג ל-Pro':'התחל ניסיון 7 ימים חינם'}</button>`:''}
     </div>
@@ -2920,8 +2924,8 @@ function attachHandlers() {
     haptic();
     const m = el.dataset.mode;
     const limits = getLimits();
-    if (m === 'opener' && !limits.hasOpener) { state.navTab='premium'; render(); showToast('"פתיחה" זמין רק ב-Pro', 'error'); return; }
-    if (m === 'phrase' && !limits.hasPhrase) { state.navTab='premium'; render(); showToast('"ניסוח" זמין ב-Plus ו-Pro', 'error'); return; }
+    if (m === 'opener' && !limits.hasOpener) { state.navTab='premium'; render(); showToast('"פתיחת שיחה" זמין ב-Plus ומעלה ⭐', 'error'); return; }
+    if (m === 'phrase' && !limits.hasPhrase) { state.navTab='premium'; render(); showToast('"עזרת ניסוח" זמין ב-Plus ומעלה ⭐', 'error'); return; }
     state.appMode = m;
     render();
   }));
@@ -2964,7 +2968,7 @@ function attachHandlers() {
 
   // ---- style chips ----
   $$('#stylesScroll .style-chip').forEach(el => el.addEventListener('click', () => {
-    if (el.dataset.locked === 'true') { haptic(20); state.navTab='premium'; render(); showToast('סגנון זה זמין ב-Plus ומעלה 💎', 'error'); return; }
+    if (el.dataset.locked === 'true') { haptic(20); state.navTab='premium'; render(); showToast('סגנון זה זמין ב-Plus ומעלה ⭐', 'error'); return; }
     haptic();
     state.selectedStyle = el.dataset.style;
     $$('#stylesScroll .style-chip').forEach(c => c.classList.remove('active'));
