@@ -3,14 +3,30 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<meta name="theme-color" content="#07050f" />
+<meta name="theme-color" content="#ff2e93" />
+<meta name="description" content="AI חכם שיעזור לך לדעת מה לכתוב לה. תשובות מנצחות, מד עניין, וקואצ' אישי לכל שיחה." />
+
+<!-- PWA / iOS -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="מה לענות לה?" />
+<meta name="application-name" content="מה לענות לה?" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="apple-touch-icon" href="icon.svg" />
+
+<!-- Open Graph (link previews in WhatsApp/Facebook) -->
+<meta property="og:title" content="מה לענות לה? 💬" />
+<meta property="og:description" content="AI חכם שיעזור לך לדעת מה לכתוב לה. תשובות מנצחות לכל שיחה." />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="icon.svg" />
+<meta name="twitter:card" content="summary" />
+
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>מה לענות לה? 💬</title>
-<link rel="manifest" href="manifest.json" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&display=swap" rel="stylesheet" />
@@ -881,6 +897,58 @@ select.input {
 }
 .admin-cycle-picker button.active { background:var(--cyan); color:#003a44; border-color:transparent; }
 
+/* =================== PWA INSTALL BANNER =================== */
+.install-banner {
+  background:linear-gradient(135deg, rgba(255,46,147,0.14), rgba(154,46,255,0.10));
+  border:1px solid rgba(255,46,147,0.28);
+  border-radius:18px; padding:14px 14px 14px 16px;
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:14px;
+  animation:fadeUp 0.4s var(--ease) both;
+  position:relative;
+}
+.install-banner .ib-icon {
+  width:46px; height:46px; border-radius:14px;
+  background:linear-gradient(135deg, #ff2e93, #9a2eff);
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; flex-shrink:0;
+  box-shadow:0 4px 14px rgba(255,46,147,0.35);
+}
+.install-banner .ib-info { flex:1; min-width:0; }
+.install-banner .ib-title { font-weight:900; font-size:14.5px; margin-bottom:2px; }
+.install-banner .ib-sub { font-size:12px; color:var(--text-2); line-height:1.4; }
+.install-banner .ib-cta {
+  background:linear-gradient(135deg, #ff2e93, #9a2eff); color:white;
+  border:none; padding:8px 14px; border-radius:12px;
+  font-weight:800; font-size:13px; cursor:pointer; white-space:nowrap;
+  box-shadow:0 4px 14px rgba(255,46,147,0.35);
+}
+.install-banner .ib-close {
+  position:absolute; top:6px; left:6px;
+  width:22px; height:22px; border-radius:50%;
+  background:rgba(255,255,255,0.08); border:none; color:var(--text-2);
+  cursor:pointer; font-size:11px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* iOS install instructions sheet */
+.ios-install-step {
+  display:flex; align-items:center; gap:12px;
+  background:var(--surface); border:1px solid var(--stroke);
+  border-radius:14px; padding:12px 14px; margin-bottom:8px;
+}
+.ios-install-step .step-num {
+  width:30px; height:30px; border-radius:50%;
+  background:linear-gradient(135deg, #ff2e93, #9a2eff);
+  color:white; font-weight:900; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.ios-install-step .step-text {
+  flex:1; font-size:14px; line-height:1.5;
+}
+.ios-install-step .step-icon { font-size:22px; }
+
 /* =================== EMPTY STATES =================== */
 .empty-state {
   text-align:center; padding:60px 20px;
@@ -1516,11 +1584,12 @@ const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const TIER_LIMITS = {
   free: {
-    dailyGenerations:5, crushProfiles:1,
+    dailyGenerations:15, crushProfiles:2,
     hasOpener:false, hasPhrase:false,
     hasCoach:false, hasCoachDeep:false,
     hasImageUpload:false, hasMemory:false, hasPriority:false,
     hasCloudSync:false,
+    freeCoachPerDay:1, // 1 free Coach analysis per day (taste the value)
     ads:true,
     lockedStyles:[],
   },
@@ -1607,6 +1676,7 @@ const state = {
   emergencyText: '',
   emergencyBusy: false,
   emergencyResult: null,
+  deferredInstallPrompt: null,
 };
 
 // ---------- helpers ----------
@@ -1662,6 +1732,19 @@ function bumpUsage() { localStorage.setItem(usageKey(), String(getUsedToday()+1)
 function remainingToday() {
   const lim = getLimits().dailyGenerations;
   return lim === Infinity ? Infinity : Math.max(0, lim - getUsedToday());
+}
+// ---- free Coach trial tracking (1 per day for free users) ----
+function coachTrialKey() { return `mll2_coach_trial_${state.user?.id||'a'}_${new Date().toISOString().slice(0,10)}`; }
+function getCoachTrialUsedToday() { return parseInt(localStorage.getItem(coachTrialKey())||'0', 10); }
+function bumpCoachTrial() { localStorage.setItem(coachTrialKey(), String(getCoachTrialUsedToday()+1)); }
+function freeCoachRemaining() {
+  const lim = getLimits().freeCoachPerDay || 0;
+  return Math.max(0, lim - getCoachTrialUsedToday());
+}
+function canUseCoachToday() {
+  const lim = getLimits();
+  if (lim.hasCoach) return true; // Plus/Pro always
+  return freeCoachRemaining() > 0;
 }
 
 // ---------- streak ----------
@@ -2019,8 +2102,8 @@ function renderBottomNav() {
 function renderSmartUpsell(remaining) {
   let icon, title, desc;
   if (remaining === 0) {
-    icon = '🚀'; title = 'הגעת למקסימום היומי'; desc = 'שדרג ל-Plus לקבל תשובות ללא הגבלה';
-  } else if (remaining <= 2) {
+    icon = '🚀'; title = 'הגעת למקסימום היומי (15)'; desc = 'שדרג ל-Plus לקבל תשובות ללא הגבלה';
+  } else if (remaining <= 3) {
     icon = '⚡'; title = `${remaining} תשובות נשארו`; desc = 'שדרג ל-Plus — תשובות בלי הגבלה + AI Coach';
   } else {
     const teasers = [
@@ -2061,6 +2144,7 @@ function renderHome() {
       <span class="tier-pill ${tier}">${tierInfo.emoji} ${tier==='free'?'חינם':tierInfo.name}${trial>0?` · 🎁 ${trial} ימי ניסיון`:''}</span>
     </div>
 
+    ${renderInstallBanner()}
     ${limits.ads ? renderSmartUpsell(remaining) : ''}
 
     <div class="mode-tabs">
@@ -2399,14 +2483,22 @@ function formatRelTime(ts) {
 
 function renderCoach() {
   const limits = getLimits();
-  if (!limits.hasCoach) {
-    // Free user — show blurred preview with paywall
+  const freeRemaining = freeCoachRemaining();
+  const isFreeTrialAvailable = !limits.hasCoach && freeRemaining > 0;
+
+  if (!limits.hasCoach && !isFreeTrialAvailable) {
+    // Free user out of daily trials — show blurred preview with paywall
     return `
       <div style="padding-top:6px;">
         <div class="coach-hero">
           <div class="coach-emoji">🧠</div>
           <div class="coach-title">AI Chat Coach</div>
           <div class="coach-sub">המאמן האישי שלך — מנתח כל שיחה</div>
+        </div>
+
+        <div style="background:linear-gradient(135deg, rgba(255,46,147,0.12), rgba(154,46,255,0.10));border:1px solid rgba(255,46,147,0.25);border-radius:14px;padding:12px 14px;margin-bottom:10px;text-align:center;">
+          <div style="font-size:13px;color:var(--text-2);">השתמשת בניתוח החינמי היומי שלך 🎁</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:4px;">המסלול החינמי כולל ניתוח אחד ביום. שדרג ל-Plus לניתוחים ללא הגבלה.</div>
         </div>
 
         <div class="blurred-preview">
@@ -2477,7 +2569,16 @@ function renderCoach() {
         <div class="coach-sub">${limits.hasCoachDeep ? 'ניתוח עמוק עם זיכרון והיסטוריה' : 'הדבק שיחה ואנתח אותה בשבילך'}</div>
       </div>
 
-      ${!limits.hasCoachDeep ? `
+      ${isFreeTrialAvailable ? `
+        <div class="smart-upgrade-banner" id="coachProUpsell" style="border-color:rgba(46,206,138,0.3);background:linear-gradient(135deg,rgba(46,206,138,0.10),rgba(46,206,255,0.06));">
+          <div class="sub-icon">🎁</div>
+          <div class="sub-info">
+            <div class="sub-title">ניתוח חינמי יומי — נשאר ${freeRemaining}/1</div>
+            <div class="sub-desc">שדרג ל-Plus לניתוחים ללא הגבלה + ייעוץ תזמון + SOS</div>
+          </div>
+          <div class="sub-arrow">‹</div>
+        </div>
+      ` : !limits.hasCoachDeep ? `
         <div class="smart-upgrade-banner" id="coachProUpsell">
           <div class="sub-icon">💎</div>
           <div class="sub-info">
@@ -2689,11 +2790,12 @@ function renderPremium() {
       <div class="pw-tier-title">להכיר את האפליקציה</div>
       <div class="pw-price"><span class="amount">₪0</span><span class="per">לתמיד</span></div>
       <ul class="pw-feats">
-        <li><span class="check">✓</span>5 תשובות AI ליום</li>
+        <li><span class="check">✓</span>15 תשובות AI ליום</li>
         <li><span class="check">✓</span>כל 8 סגנונות התשובה</li>
-        <li><span class="check">✓</span>פרופיל קראש אחד</li>
+        <li><span class="check">✓</span>2 פרופילי קראש</li>
+        <li><span class="check">✓</span>טעימה יומית מה-AI Coach (ניתוח אחד ביום)</li>
         <li class="off"><span class="check">×</span>בלי פתיחת שיחה / עזרת ניסוח</li>
-        <li class="off"><span class="check">×</span>בלי AI Coach וניתוח שיחה</li>
+        <li class="off"><span class="check">×</span>בלי העלאת צילומי מסך</li>
         <li class="off"><span class="check">×</span>בלי סינכרון בין מכשירים</li>
         <li class="off"><span class="check">×</span>פרסומות מופיעות</li>
       </ul>
@@ -3133,6 +3235,8 @@ function attachHandlers() {
   // ---- settings ----
   $('#editProfile')?.addEventListener('click', () => { haptic(); openProfileSheet(); });
   $('#openAdminPanel')?.addEventListener('click', () => { haptic(); openAdminSheet(''); });
+  $('#ibInstall')?.addEventListener('click', () => handleInstallClick());
+  $('#ibClose')?.addEventListener('click', () => dismissInstallBanner());
   $('#goPremium')?.addEventListener('click', () => { haptic(); state.navTab='premium'; render(); });
   $('#hapticToggle')?.addEventListener('change', (e) => {
     localStorage.setItem('mll2_haptic', e.target.checked ? '1' : '0');
@@ -3477,6 +3581,18 @@ async function handleCoachAnalyze() {
   if (text.length < 20) { haptic(20); showToast('הדבק שיחה ארוכה יותר (לפחות 20 תווים)', 'error'); return; }
   if (state.coachAnalyzing) return;
 
+  // Gate: free users get N analyses per day
+  const lim = getLimits();
+  if (!lim.hasCoach) {
+    if (freeCoachRemaining() <= 0) {
+      haptic(20);
+      state.navTab = 'premium'; render();
+      showToast('השתמשת בניתוח החינמי היומי. שדרג ל-Plus ⭐', 'error');
+      return;
+    }
+    bumpCoachTrial();
+  }
+
   haptic();
   state.coachAnalyzing = true;
   state.coachStage = 'קורא את השיחה';
@@ -3792,6 +3908,23 @@ function renderAdminBody(data, search) {
       <div class="admin-stat pro"><div class="v">${s.pro}</div><div class="l">💎 Pro</div></div>
     </div>
 
+    <!-- Anthropic token monitoring -->
+    <div style="background:linear-gradient(135deg, rgba(46,206,255,0.08), rgba(154,46,255,0.06));border:1px solid rgba(46,206,255,0.22);border-radius:14px;padding:12px 14px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="font-size:22px;">🪙</div>
+        <div style="flex:1;">
+          <div style="font-weight:800;font-size:14px;">מעקב טוקנים (Anthropic)</div>
+          <div style="font-size:11.5px;color:var(--text-3);">בדוק כמה נשאר בקרדיט שלך ומתי לטעון מחדש</div>
+        </div>
+      </div>
+      <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener" class="btn btn-secondary" style="display:flex;text-decoration:none;font-size:13px;padding:8px;">
+        💳 פתח Anthropic Billing →
+      </a>
+      <div style="font-size:11.5px;color:var(--text-3);margin-top:8px;line-height:1.5;">
+        💡 <b>טיפ:</b> הגדר שם <b>Auto-recharge</b> (טעינה אוטומטית) ו-<b>Email alerts</b> ב-75% — ככה לא תיתפס "ריק" באמצע יום עמוס.
+      </div>
+    </div>
+
     <input class="admin-search" id="adminSearchInput" placeholder="🔍 חיפוש לפי אימייל או שם..." value="${esc(search)}" />
 
     <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">
@@ -4077,6 +4210,109 @@ async function init() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+
+  setupPwaInstall();
+}
+
+// ===================================================================
+// PWA INSTALL FLOW
+// ===================================================================
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+}
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+function bumpVisitCount() {
+  const n = (parseInt(localStorage.getItem('mll2_visits') || '0', 10) || 0) + 1;
+  localStorage.setItem('mll2_visits', String(n));
+  return n;
+}
+function setupPwaInstall() {
+  // Capture the deferred prompt on Android/Chrome
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    state.deferredInstallPrompt = e;
+    // Re-render so the install banner appears if we're on home tab
+    if (state.navTab === 'home' && state.screen === 'main') render();
+  });
+  window.addEventListener('appinstalled', () => {
+    state.deferredInstallPrompt = null;
+    localStorage.setItem('mll2_installed', '1');
+    showToast('🎉 האפליקציה הותקנה!', 'success');
+    render();
+  });
+  bumpVisitCount();
+}
+function shouldShowInstallBanner() {
+  if (isStandalone()) return false;
+  if (localStorage.getItem('mll2_installed') === '1') return false;
+  if (localStorage.getItem('mll2_install_dismissed') === '1') return false;
+  // Wait until 2nd visit OR until they have an Android install prompt ready
+  const visits = parseInt(localStorage.getItem('mll2_visits') || '0', 10) || 0;
+  if (!state.deferredInstallPrompt && visits < 2) return false;
+  // For iOS we always show (manual instructions); for Android only if event captured
+  if (isIOS() || state.deferredInstallPrompt) return true;
+  return false;
+}
+async function handleInstallClick() {
+  haptic();
+  if (isIOS()) {
+    openIosInstallSheet();
+    return;
+  }
+  const p = state.deferredInstallPrompt;
+  if (!p) return;
+  try {
+    p.prompt();
+    const { outcome } = await p.userChoice;
+    if (outcome === 'accepted') {
+      state.deferredInstallPrompt = null;
+      // appinstalled event will fire too
+    }
+  } catch {}
+}
+function dismissInstallBanner() {
+  haptic();
+  localStorage.setItem('mll2_install_dismissed', '1');
+  render();
+}
+function openIosInstallSheet() {
+  openSheet(`
+    <div style="text-align:center;padding:6px 0 14px;">
+      <div style="font-size:54px;line-height:1;margin-bottom:8px;">📲</div>
+      <div class="sheet-title">התקן את האפליקציה</div>
+      <div class="sheet-sub">2 צעדים פשוטים ב-Safari ויש לך אייקון על מסך הבית — בדיוק כמו אפליקציה רגילה.</div>
+    </div>
+    <div class="ios-install-step">
+      <div class="step-num">1</div>
+      <div class="step-text">לחץ על כפתור <b>שיתוף</b> בתחתית המסך</div>
+      <div class="step-icon">⬆️</div>
+    </div>
+    <div class="ios-install-step">
+      <div class="step-num">2</div>
+      <div class="step-text">בחר <b>"Add to Home Screen"</b> (הוסף למסך הבית)</div>
+      <div class="step-icon">➕</div>
+    </div>
+    <div class="muted-note" style="text-align:center;margin-top:14px;">
+      ⚠️ עובד רק ב-Safari (לא Chrome ב-iPhone)
+    </div>
+  `);
+}
+function renderInstallBanner() {
+  if (!shouldShowInstallBanner()) return '';
+  return `
+    <div class="install-banner">
+      <button class="ib-close" id="ibClose" aria-label="סגור">✕</button>
+      <div class="ib-icon">📲</div>
+      <div class="ib-info">
+        <div class="ib-title">התקן את האפליקציה</div>
+        <div class="ib-sub">גישה מהירה ממסך הבית · עובד גם בלי דפדפן</div>
+      </div>
+      <button class="ib-cta" id="ibInstall">${isIOS() ? '📖 איך' : 'התקן'}</button>
+    </div>
+  `;
 }
 
 function afterAuth() {

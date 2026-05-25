@@ -1,0 +1,28 @@
+{
+  "name": "מה לענות לה? - יועץ AI לצ'אטים",
+  "short_name": "מה לענות לה?",
+  "description": "AI חכם שיעזור לך לדעת מה לכתוב לה. תשובות מנצחות, מד עניין, וקואצ' אישי לכל שיחה ב-WhatsApp.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a1a",
+  "theme_color": "#ff2e93",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["social", "lifestyle", "dating"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
