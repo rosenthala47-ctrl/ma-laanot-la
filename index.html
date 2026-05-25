@@ -3446,55 +3446,26 @@ async function handleBuy(targetTier, btn) {
 function openComingSoonSheet(targetTier) {
   const tierLabel = TIER_LABELS[targetTier];
   const tierName = tierLabel ? `${tierLabel.emoji} ${tierLabel.name}` : targetTier;
-  const adminEmail = (CONFIG.ADMIN_EMAILS && CONFIG.ADMIN_EMAILS[0]) || 'rosenthala47@gmail.com';
-  const userEmail = state.user?.email || '';
-  const subject = encodeURIComponent(`רוצה לשדרג ל-${tierLabel?.name || targetTier}`);
-  const body = encodeURIComponent(
-    `היי!\n\nאני רוצה לשדרג את החשבון שלי ל-${tierLabel?.name || targetTier}.\n\nהאימייל שלי באפליקציה: ${userEmail}\n\nתודה!`
-  );
-  const mailto = `mailto:${adminEmail}?subject=${subject}&body=${body}`;
-  const waText = encodeURIComponent(`היי! אני רוצה לשדרג ל-${tierLabel?.name || targetTier} ב"מה לענות לה". האימייל שלי: ${userEmail}`);
 
   openSheet(`
-    <div style="text-align:center;padding:6px 0 14px;">
-      <div style="font-size:54px;line-height:1;margin-bottom:8px;">🚧</div>
-      <div class="sheet-title" style="margin-bottom:8px;">התשלומים בקרוב!</div>
-      <div class="sheet-sub" style="margin-bottom:0;">
-        מערכת התשלומים בתהליך חיבור סופי.<br/>
-        בינתיים — אפשר לשדרג ידנית.
+    <div style="text-align:center;padding:14px 0 6px;">
+      <div style="font-size:64px;line-height:1;margin-bottom:14px;">🚧</div>
+      <div class="sheet-title" style="margin-bottom:10px;">אנחנו עובדים על זה!</div>
+      <div class="sheet-sub" style="margin-bottom:18px;line-height:1.6;">
+        מערכת התשלומים בשלבי חיבור אחרונים.<br/>
+        ${tierName} יהיה זמין לרכישה בקרוב מאוד. ✨
       </div>
     </div>
 
-    <div style="background:linear-gradient(135deg, rgba(255,46,147,0.1), rgba(154,46,255,0.08));border:1px solid rgba(255,46,147,0.2);border-radius:16px;padding:14px;margin-bottom:14px;">
-      <div style="font-size:13px;color:var(--text-2);margin-bottom:6px;font-weight:700;">רוצה ${tierName}?</div>
-      <div style="font-size:13.5px;color:var(--text);line-height:1.6;">
-        שלח לי הודעה ואני אפעיל לך את המנוי באופן ידני תוך מספר שעות. 🙌
+    <div style="background:linear-gradient(135deg, rgba(255,46,147,0.08), rgba(154,46,255,0.06));border:1px solid rgba(255,46,147,0.18);border-radius:16px;padding:16px;text-align:center;margin-bottom:14px;">
+      <div style="font-size:14px;color:var(--text);line-height:1.6;">
+        בינתיים — תהנה מהגרסה החינמית 🆓<br/>
+        נעדכן אותך ברגע שיהיה אפשר לשדרג.
       </div>
     </div>
 
-    <a href="${mailto}" class="btn btn-primary" style="display:flex;text-decoration:none;margin-bottom:8px;">
-      📧 שלח אימייל לתמיכה
-    </a>
-    <button class="btn btn-secondary" id="csCopyEmail" style="margin-bottom:8px;">
-      📋 העתק את כתובת האימייל
-    </button>
-
-    <div class="muted-note" style="text-align:center;margin-top:12px;">
-      📬 ${esc(adminEmail)}
-    </div>
+    <button class="btn btn-primary" onclick="closeSheet()">הבנתי, נחכה</button>
   `);
-
-  // copy email handler
-  $('#csCopyEmail')?.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(adminEmail);
-      const b = $('#csCopyEmail');
-      const orig = b.textContent;
-      b.textContent = '✓ הועתק!';
-      setTimeout(() => { b.textContent = orig; }, 1500);
-      haptic();
-    } catch { showToast('לא הצלחתי להעתיק', 'error'); }
-  });
 }
 
 // ===================================================================
