@@ -897,6 +897,33 @@ select.input {
 }
 .admin-cycle-picker button.active { background:var(--cyan); color:#003a44; border-color:transparent; }
 
+/* =================== VIRAL INVITE AFTER RESULTS =================== */
+.invite-after-results {
+  background:linear-gradient(135deg, rgba(46,206,138,0.12), rgba(46,206,255,0.08));
+  border:1px solid rgba(46,206,138,0.3);
+  border-radius:18px; padding:14px;
+  display:flex; align-items:center; gap:12px;
+  margin-top:16px;
+  animation:fadeUp 0.6s var(--ease) 0.3s both;
+}
+.invite-after-results .iar-icon {
+  width:44px; height:44px; border-radius:14px;
+  background:linear-gradient(135deg, #2ece8a, #2eceff);
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; flex-shrink:0;
+  box-shadow:0 4px 14px rgba(46,206,138,0.3);
+}
+.invite-after-results .iar-info { flex:1; min-width:0; }
+.invite-after-results .iar-title { font-weight:900; font-size:14.5px; margin-bottom:2px; }
+.invite-after-results .iar-sub { font-size:12px; color:var(--text-2); line-height:1.4; }
+.invite-after-results .iar-btn {
+  background:#25d366; color:white; border:none;
+  padding:9px 14px; border-radius:12px;
+  font-weight:800; font-size:13px; cursor:pointer; white-space:nowrap;
+  box-shadow:0 4px 14px rgba(37,211,102,0.35);
+}
+.invite-after-results .iar-btn:active { transform:scale(0.95); }
+
 /* =================== PWA INSTALL BANNER =================== */
 .install-banner {
   background:linear-gradient(135deg, rgba(255,46,147,0.14), rgba(154,46,255,0.10));
@@ -3371,7 +3398,25 @@ function renderResults(answers) {
         </div>
       </div>
     `;}).join('')}
+
+    <!-- Viral invite card -->
+    <div class="invite-after-results" id="inviteAfterResults">
+      <div class="iar-icon">🎁</div>
+      <div class="iar-info">
+        <div class="iar-title">אהבת? שתף עם חבר</div>
+        <div class="iar-sub">שניכם תקבלו 7 ימי Plus חינם 🔥</div>
+      </div>
+      <button class="iar-btn" id="iarShareBtn">💬 שתף</button>
+    </div>
   `;
+
+  // Wire viral invite share button
+  $('#iarShareBtn')?.addEventListener('click', () => {
+    haptic(20);
+    const url = buildInviteUrl();
+    const msg = `תראה איזה כלי גיליתי 🤯\n\n"מה לענות לה?" — אפליקציה שעוזרת לכתוב הודעות חכמות בצ'אט. אתה מדביק את ההודעה שקיבלת ומקבל 5 תשובות מנצחות.\n\nדרך הקישור שלי תקבל 7 ימי Plus חינם:\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  });
 
   // Wire rating buttons
   $$('.rate-btn', wrap).forEach(b => b.addEventListener('click', () => {
