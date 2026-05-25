@@ -812,6 +812,75 @@ select.input {
   display:flex; align-items:center; justify-content:center;
 }
 
+/* =================== ADMIN PANEL =================== */
+.admin-card {
+  background:linear-gradient(135deg, rgba(154,46,255,0.1), rgba(46,206,255,0.08));
+  border:1px solid rgba(154,46,255,0.25);
+  border-radius:18px; padding:14px; margin-bottom:10px;
+}
+.admin-card .at-title {
+  font-weight:900; font-size:15px; margin-bottom:2px;
+  display:flex; align-items:center; gap:8px;
+}
+.admin-card .at-sub { font-size:12px; color:var(--text-2); margin-bottom:10px; }
+.admin-stats {
+  display:grid; grid-template-columns:repeat(4, 1fr);
+  gap:8px; margin-bottom:14px;
+}
+.admin-stat {
+  background:var(--surface-2); border:1px solid var(--stroke);
+  border-radius:12px; padding:10px 6px; text-align:center;
+}
+.admin-stat .v { font-size:20px; font-weight:900; line-height:1; }
+.admin-stat .l { font-size:11px; color:var(--text-3); margin-top:4px; font-weight:600; }
+.admin-stat.free .v { color:var(--text-2); }
+.admin-stat.plus .v { color:#ffb547; }
+.admin-stat.pro  .v { color:#2eceff; }
+.admin-search {
+  width:100%; background:var(--surface-2); border:1px solid var(--stroke);
+  border-radius:12px; padding:10px 12px; color:var(--text);
+  font-size:14px; margin-bottom:10px;
+}
+.admin-user {
+  background:var(--surface); border:1px solid var(--stroke);
+  border-radius:14px; padding:10px 12px; margin-bottom:8px;
+  display:flex; align-items:center; gap:10px;
+}
+.admin-user .au-info { flex:1; min-width:0; }
+.admin-user .au-email {
+  font-weight:700; font-size:13px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.admin-user .au-meta { font-size:11px; color:var(--text-3); margin-top:2px; }
+.admin-user .au-tier {
+  padding:3px 8px; border-radius:10px; font-size:11px; font-weight:800;
+  white-space:nowrap;
+}
+.admin-user .au-tier.free { background:rgba(255,255,255,0.08); color:var(--text-2); }
+.admin-user .au-tier.plus { background:rgba(255,181,71,0.15); color:#ffb547; }
+.admin-user .au-tier.pro  { background:rgba(46,206,255,0.15); color:#2eceff; }
+.admin-user .au-edit {
+  background:var(--surface-2); border:1px solid var(--stroke);
+  border-radius:10px; width:30px; height:30px; cursor:pointer;
+  font-size:14px; color:var(--text);
+}
+.admin-tier-picker {
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:12px 0;
+}
+.admin-tier-picker button {
+  padding:10px; border-radius:12px; font-size:13px; font-weight:800;
+  background:var(--surface-2); border:1px solid var(--stroke); color:var(--text);
+  cursor:pointer;
+}
+.admin-tier-picker button.active { background:var(--grad-1); border-color:transparent; color:white; }
+.admin-cycle-picker { display:flex; gap:8px; margin-bottom:12px; }
+.admin-cycle-picker button {
+  flex:1; padding:8px; border-radius:10px; font-size:12px; font-weight:700;
+  background:var(--surface-2); border:1px solid var(--stroke); color:var(--text);
+  cursor:pointer;
+}
+.admin-cycle-picker button.active { background:var(--cyan); color:#003a44; border-color:transparent; }
+
 /* =================== EMPTY STATES =================== */
 .empty-state {
   text-align:center; padding:60px 20px;
@@ -2759,6 +2828,14 @@ function renderSettings() {
         </div>
       </div>
 
+      ${isAdmin() ? `
+        <div class="admin-card">
+          <div class="at-title">🛡️ אזור אדמין</div>
+          <div class="at-sub">מי שילם? כמה משתמשים? — תצוגה ושליטה ידנית.</div>
+          <button class="btn btn-secondary" id="openAdminPanel">📊 פתח לוח בקרה</button>
+        </div>
+      ` : ''}
+
       <button class="btn btn-danger" id="signOut">🚪 התנתק</button>
 
       <div class="muted-note">גרסה 2.0 · עיצוב מחדש</div>
@@ -3055,6 +3132,7 @@ function attachHandlers() {
 
   // ---- settings ----
   $('#editProfile')?.addEventListener('click', () => { haptic(); openProfileSheet(); });
+  $('#openAdminPanel')?.addEventListener('click', () => { haptic(); openAdminSheet(''); });
   $('#goPremium')?.addEventListener('click', () => { haptic(); state.navTab='premium'; render(); });
   $('#hapticToggle')?.addEventListener('change', (e) => {
     localStorage.setItem('mll2_haptic', e.target.checked ? '1' : '0');
@@ -3616,6 +3694,200 @@ function openCrushSheet(crush) {
       showToast(isNew?'פרופיל נוצר':'שמור', 'success');
     } catch (err) {
       $('#crSave').disabled = false;
+      showToast(err.message || 'שגיאה', 'error');
+    }
+  });
+}
+
+// ===================================================================
+// ADMIN PANEL
+// ===================================================================
+async function getAdminAuthHeader() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session?.access_token) throw new Error('לא מחובר');
+  return { 'Authorization': `Bearer ${session.access_token}`, 'apikey': CONFIG.SUPABASE_ANON_KEY };
+}
+
+async function fetchAdminUsers(search = '') {
+  const headers = await getAdminAuthHeader();
+  const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/admin-users`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ search }),
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(()=>'');
+    throw new Error(`שגיאה (${r.status}) ${txt}`);
+  }
+  return r.json();
+}
+
+async function adminUpdateTier(userId, tier, cycle = 'monthly', days = 30) {
+  const headers = await getAdminAuthHeader();
+  const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/admin-update-tier`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, tier, cycle, days }),
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(()=>'');
+    throw new Error(`שגיאה (${r.status}) ${txt}`);
+  }
+  return r.json();
+}
+
+function formatAdminDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+}
+function adminDaysUntil(iso) {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  return Math.ceil(ms / 86400000);
+}
+
+async function openAdminSheet(search = '') {
+  openSheet(`
+    <div class="sheet-title">🛡️ לוח בקרת אדמין</div>
+    <div class="sheet-sub">תצוגה ושליטה ידנית במשתמשים ובמנויים.</div>
+    <div id="adminBody">
+      <div style="text-align:center;padding:30px;color:var(--text-3);">טוען...</div>
+    </div>
+  `);
+  try {
+    const data = await fetchAdminUsers(search);
+    renderAdminBody(data, search);
+  } catch (err) {
+    $('#adminBody').innerHTML = `
+      <div class="empty-state" style="padding:20px;">
+        <div class="empty-emoji">⚠️</div>
+        <div class="empty-title">לא הצלחתי לטעון</div>
+        <div class="empty-sub">${esc(err.message)}</div>
+        <div class="muted-note" style="margin-top:14px;">ייתכן שפונקציית ה-Edge עדיין לא נפרסה. ראה ADMIN_SETUP.md</div>
+      </div>
+    `;
+  }
+}
+
+function renderAdminBody(data, search) {
+  const s = data.stats;
+  const users = data.users || [];
+  $('#adminBody').innerHTML = `
+    <div class="admin-stats">
+      <div class="admin-stat"><div class="v">${s.total}</div><div class="l">סה"כ</div></div>
+      <div class="admin-stat free"><div class="v">${s.free}</div><div class="l">חינם</div></div>
+      <div class="admin-stat plus"><div class="v">${s.plus}</div><div class="l">⭐ Plus</div></div>
+      <div class="admin-stat pro"><div class="v">${s.pro}</div><div class="l">💎 Pro</div></div>
+    </div>
+
+    <input class="admin-search" id="adminSearchInput" placeholder="🔍 חיפוש לפי אימייל או שם..." value="${esc(search)}" />
+
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">
+      ${search ? `${data.total_match} תוצאות (מציג ${users.length})` : `מציג ${users.length} משתמשים אחרונים`}
+    </div>
+
+    <div id="adminUsersList">
+      ${users.length === 0 ? `<div style="text-align:center;padding:20px;color:var(--text-3);">אין משתמשים תואמים</div>` : users.map(u => {
+        const daysLeft = adminDaysUntil(u.subscription_expiry);
+        return `
+        <div class="admin-user">
+          <div class="au-info">
+            <div class="au-email">${esc(u.email || '?')}</div>
+            <div class="au-meta">
+              ${u.name ? esc(u.name) + ' · ' : ''}נרשם ${formatAdminDate(u.created_at)}
+              ${u.subscription_expiry ? ` · פג ${daysLeft >= 0 ? `בעוד ${daysLeft} ימים` : 'פג תוקף'}` : ''}
+            </div>
+          </div>
+          <span class="au-tier ${u.tier}">${u.tier==='free'?'🆓':u.tier==='plus'?'⭐':'💎'} ${u.tier.toUpperCase()}</span>
+          <button class="au-edit" data-uid="${esc(u.id)}" data-email="${esc(u.email||'')}" data-tier="${u.tier}" title="ערוך">✏️</button>
+        </div>
+      `; }).join('')}
+    </div>
+  `;
+  attachAdminHandlers();
+}
+
+function attachAdminHandlers() {
+  let timer;
+  $('#adminSearchInput')?.addEventListener('input', (e) => {
+    clearTimeout(timer);
+    const q = e.target.value;
+    timer = setTimeout(async () => {
+      try {
+        const data = await fetchAdminUsers(q);
+        renderAdminBody(data, q);
+      } catch {}
+    }, 350);
+  });
+  $$('#adminUsersList .au-edit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      haptic();
+      openAdminEditTierSheet({
+        userId: btn.dataset.uid,
+        email: btn.dataset.email,
+        currentTier: btn.dataset.tier,
+      });
+    });
+  });
+}
+
+function openAdminEditTierSheet({ userId, email, currentTier }) {
+  let pickedTier = currentTier;
+  let pickedCycle = 'monthly';
+  openSheet(`
+    <div class="sheet-title">✏️ עדכון מנוי ידני</div>
+    <div class="sheet-sub">${esc(email)}</div>
+
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:6px;">בחר מנוי</div>
+    <div class="admin-tier-picker" id="aetTier">
+      <button data-tier="free" class="${pickedTier==='free'?'active':''}">🆓 חינם</button>
+      <button data-tier="plus" class="${pickedTier==='plus'?'active':''}">⭐ Plus</button>
+      <button data-tier="pro"  class="${pickedTier==='pro'?'active':''}">💎 Pro</button>
+    </div>
+
+    <div id="aetCycleWrap" style="${pickedTier==='free'?'display:none;':''}">
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:6px;">תקופה</div>
+      <div class="admin-cycle-picker" id="aetCycle">
+        <button data-cycle="monthly" class="active">חודשי (30 יום)</button>
+        <button data-cycle="yearly">שנתי (365 יום)</button>
+      </div>
+    </div>
+
+    <div class="muted-note" style="margin-bottom:14px;">
+      ⚠️ זוהי עקיפה ידנית — מסומן ב-user_metadata כ-manual_override.
+      אם המשתמש משלם דרך Stripe, ה-Webhook ישכתב את זה.
+    </div>
+
+    <button class="btn btn-primary" id="aetSave">שמור שינוי</button>
+  `);
+
+  const refresh = () => {
+    $$('#aetTier button').forEach(b => b.classList.toggle('active', b.dataset.tier === pickedTier));
+    $('#aetCycleWrap').style.display = (pickedTier === 'free') ? 'none' : '';
+    $$('#aetCycle button').forEach(b => b.classList.toggle('active', b.dataset.cycle === pickedCycle));
+  };
+
+  $$('#aetTier button').forEach(b => {
+    b.addEventListener('click', () => { pickedTier = b.dataset.tier; haptic(); refresh(); });
+  });
+  $$('#aetCycle button').forEach(b => {
+    b.addEventListener('click', () => { pickedCycle = b.dataset.cycle; haptic(); refresh(); });
+  });
+
+  $('#aetSave').addEventListener('click', async () => {
+    const btn = $('#aetSave');
+    btn.disabled = true; btn.textContent = 'שומר...';
+    try {
+      const days = pickedCycle === 'yearly' ? 365 : 30;
+      await adminUpdateTier(userId, pickedTier, pickedCycle, days);
+      closeSheet();
+      showToast(`✅ עודכן ל-${pickedTier.toUpperCase()}`, 'success');
+      // Re-open admin panel to see refreshed state
+      setTimeout(() => openAdminSheet(''), 250);
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'שמור שינוי';
       showToast(err.message || 'שגיאה', 'error');
     }
   });
