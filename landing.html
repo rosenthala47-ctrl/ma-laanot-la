@@ -106,60 +106,177 @@
   }
   .stars { color:#ffb547; letter-spacing:1px; }
 
-  /* =================== CHAT DEMO =================== */
-  .demo {
-    background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-    border:1px solid var(--stroke);
-    border-radius:24px; padding:18px;
+  /* =================== CHAT DEMO (WhatsApp-style) =================== */
+  .demo-wrap {
     margin:36px 0;
     animation:fadeUp 0.7s var(--ease) 0.6s both;
-    box-shadow:0 20px 60px rgba(0,0,0,0.4);
   }
-  .demo-head {
-    display:flex; align-items:center; gap:10px;
-    padding-bottom:14px; border-bottom:1px solid var(--stroke); margin-bottom:14px;
+  .demo-label {
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    font-size:12px; color:var(--text-3); font-weight:700;
+    margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;
   }
-  .demo-avatar {
-    width:36px; height:36px; border-radius:50%;
+  .demo-label::before, .demo-label::after {
+    content:''; height:1px; flex:1; max-width:60px;
+    background:linear-gradient(90deg, transparent, var(--stroke), transparent);
+  }
+  .phone-frame {
+    background:#0b141a;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,46,147,0.1);
+    position:relative;
+  }
+  .wa-header {
+    background:#1f2c33;
+    padding:12px 16px;
+    display:flex; align-items:center; gap:12px;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .wa-back { color:#8696a0; font-size:20px; }
+  .wa-avatar {
+    width:38px; height:38px; border-radius:50%;
     background:linear-gradient(135deg, #ff6b9d, #ff2e93);
     display:flex; align-items:center; justify-content:center;
-    font-weight:800; color:white;
+    font-weight:800; color:white; font-size:16px;
+    flex-shrink:0;
   }
-  .demo-name { font-weight:800; font-size:14px; }
-  .demo-status { font-size:11px; color:var(--green); }
-  .demo-status::before { content:'● '; }
+  .wa-meta { flex:1; min-width:0; }
+  .wa-name { font-weight:600; font-size:15px; color:#e9edef; }
+  .wa-status { font-size:12px; color:#8696a0; }
+  .wa-icons { display:flex; gap:14px; color:#aebac1; font-size:18px; }
 
-  .bubble-her, .bubble-mine {
-    display:flex; margin-bottom:8px;
+  .wa-chat {
+    background-color:#0b141a;
+    background-image:
+      radial-gradient(rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size:18px 18px;
+    padding:18px 12px;
+    min-height:200px;
   }
-  .bubble-her .b, .bubble-mine .b {
-    max-width:75%; padding:9px 13px; border-radius:18px;
-    font-size:14px; line-height:1.45;
+  .wa-bubble {
+    display:flex; margin-bottom:6px;
+    animation:bubbleIn 0.4s var(--ease) both;
   }
-  .bubble-her { justify-content:flex-start; }
-  .bubble-her .b {
-    background:var(--surface-2);
-    border-bottom-right-radius:6px;
+  @keyframes bubbleIn {
+    from { opacity:0; transform:translateY(8px) scale(0.96); }
+    to { opacity:1; transform:translateY(0) scale(1); }
   }
-  .bubble-mine { justify-content:flex-end; }
-  .bubble-mine .b {
+  .wa-bubble.her { justify-content:flex-start; }
+  .wa-bubble.mine { justify-content:flex-end; }
+  .wa-bubble .b {
+    max-width:78%;
+    padding:7px 11px 18px;
+    border-radius:8px;
+    font-size:14.5px; line-height:1.4;
+    position:relative;
+    color:#e9edef;
+  }
+  .wa-bubble.her .b {
+    background:#202c33;
+    border-top-right-radius:0;
+  }
+  .wa-bubble.mine .b {
+    background:#005c4b;
+    border-top-left-radius:0;
+  }
+  .wa-bubble .b .time {
+    position:absolute; bottom:3px; left:8px;
+    font-size:10px; color:#8696a0;
+    display:flex; align-items:center; gap:3px;
+  }
+  .wa-bubble.her .b .time { right:8px; left:auto; }
+  .wa-bubble .b .check { color:#53bdeb; font-size:11px; }
+
+  /* Typing dots */
+  .wa-typing { display:flex; margin-bottom:6px; }
+  .wa-typing .dots {
+    background:#202c33; padding:10px 14px; border-radius:8px;
+    border-top-right-radius:0;
+    display:flex; gap:4px;
+  }
+  .wa-typing .dots span {
+    width:6px; height:6px; border-radius:50%; background:#8696a0;
+    animation:typingDot 1.4s infinite;
+  }
+  .wa-typing .dots span:nth-child(2) { animation-delay:0.2s; }
+  .wa-typing .dots span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes typingDot {
+    0%,60%,100% { opacity:0.3; transform:translateY(0); }
+    30% { opacity:1; transform:translateY(-3px); }
+  }
+
+  /* AI Magic intervention */
+  .ai-magic {
+    margin:14px 8px;
+    background:linear-gradient(135deg, rgba(255,46,147,0.16), rgba(154,46,255,0.14));
+    border:1.5px solid rgba(255,46,147,0.4);
+    border-radius:18px; padding:14px;
+    position:relative;
+    box-shadow:0 8px 32px rgba(255,46,147,0.2);
+    animation:magicPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes magicPulse {
+    0%,100% { box-shadow:0 8px 32px rgba(255,46,147,0.2); }
+    50% { box-shadow:0 8px 40px rgba(255,46,147,0.4); }
+  }
+  .ai-magic::before {
+    content:'✨'; position:absolute; top:-12px; right:14px;
+    font-size:22px;
+    background:#0b141a; padding:2px 6px; border-radius:50%;
+  }
+  .ai-magic .ai-head {
+    display:flex; align-items:center; gap:8px; margin-bottom:10px;
+  }
+  .ai-magic .ai-logo {
+    width:28px; height:28px; border-radius:8px;
     background:var(--grad);
-    color:white;
-    border-bottom-left-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+  }
+  .ai-magic .ai-label { font-size:13px; font-weight:900; color:white; }
+  .ai-magic .ai-sub { font-size:11px; color:var(--text-3); }
+
+  .ai-options { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+  .ai-option {
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px; padding:9px 11px;
+    font-size:13.5px; line-height:1.4;
+    color:#e9edef;
+    display:flex; align-items:flex-start; gap:8px;
+  }
+  .ai-option.picked {
+    background:linear-gradient(135deg, rgba(46,206,138,0.15), rgba(46,206,255,0.10));
+    border-color:rgba(46,206,138,0.45);
+  }
+  .ai-option .opt-emoji { font-size:15px; flex-shrink:0; }
+  .ai-option .opt-text { flex:1; }
+  .ai-option .opt-pick {
+    font-size:10px; color:#2ece8a; font-weight:800;
+    white-space:nowrap;
   }
 
-  .ai-pick {
-    background:rgba(46,206,255,0.08); border:1px solid rgba(46,206,255,0.25);
-    border-radius:14px; padding:12px; margin-top:14px;
+  .ai-meta {
+    display:flex; gap:10px; flex-wrap:wrap;
+    padding-top:10px; border-top:1px solid rgba(255,255,255,0.08);
+    font-size:11.5px; color:var(--text-2);
   }
-  .ai-pick .lbl {
-    display:flex; align-items:center; gap:6px;
-    font-size:11px; color:var(--cyan); font-weight:800;
-    text-transform:uppercase; letter-spacing:0.5px;
-    margin-bottom:6px;
+  .ai-meta .m-chip {
+    display:flex; align-items:center; gap:4px;
   }
-  .ai-pick .txt { font-size:14.5px; color:var(--text); }
-  .ai-pick .meta { font-size:11px; color:var(--text-3); margin-top:6px; }
+  .ai-meta .m-chip.success { color:#2ece8a; font-weight:700; }
+
+  .result-banner {
+    margin:14px 8px 0;
+    background:linear-gradient(135deg, rgba(46,206,138,0.18), rgba(46,206,255,0.10));
+    border:1px solid rgba(46,206,138,0.35);
+    border-radius:14px; padding:11px 14px;
+    text-align:center;
+    font-size:13.5px; font-weight:700; color:#a7ffd6;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
 
   /* =================== FEATURES =================== */
   .features-title {
@@ -293,33 +410,107 @@
   </section>
 
   <!-- DEMO -->
-  <section class="demo">
-    <div class="demo-head">
-      <div class="demo-avatar">נ</div>
-      <div>
-        <div class="demo-name">נועה</div>
-        <div class="demo-status">מקלידה...</div>
+  <section class="demo-wrap">
+    <div class="demo-label">דמו אמיתי</div>
+
+    <div class="phone-frame">
+      <!-- WhatsApp Header -->
+      <div class="wa-header">
+        <div class="wa-back">‹</div>
+        <div class="wa-avatar">נ</div>
+        <div class="wa-meta">
+          <div class="wa-name">נועה ✨</div>
+          <div class="wa-status">פעילה עכשיו</div>
+        </div>
+        <div class="wa-icons">📞 ⋮</div>
       </div>
-    </div>
 
-    <div class="bubble-her">
-      <div class="b">היייי, מה אתה עושה? 🙂</div>
-    </div>
-    <div class="bubble-her">
-      <div class="b">כבר שעה אתה שותק</div>
-    </div>
+      <!-- Chat -->
+      <div class="wa-chat">
+        <!-- Her message 1 -->
+        <div class="wa-bubble her">
+          <div class="b">
+            היי 😊 איך הולך?
+            <span class="time">21:43</span>
+          </div>
+        </div>
 
-    <div class="ai-pick">
-      <div class="lbl">✨ AI ממליץ — סגנון פלרטטני</div>
-      <div class="txt">"חשבתי על תשובה מעניינת. את צריכה להמתין עוד קצת 😏"</div>
-      <div class="meta">📊 רמת עניין: 78% · ⏰ ענה בעוד 5 דקות</div>
-    </div>
+        <!-- His message -->
+        <div class="wa-bubble mine">
+          <div class="b">
+            הכל טוב, ואצלך?
+            <span class="time">21:44 <span class="check">✓✓</span></span>
+          </div>
+        </div>
 
-    <div class="bubble-mine" style="margin-top:8px;">
-      <div class="b">חשבתי על תשובה מעניינת. את צריכה להמתין עוד קצת 😏</div>
-    </div>
-    <div class="bubble-her">
-      <div class="b">😏 אז עכשיו אני סקרנית</div>
+        <!-- Her message 2 - the tricky one -->
+        <div class="wa-bubble her">
+          <div class="b">
+            על הכיף 🙂 מה התוכניות שלך לסופ"ש?
+            <span class="time">21:44</span>
+          </div>
+        </div>
+
+        <!-- Typing dots - "user is stuck" -->
+        <div style="text-align:center;margin:10px 0 6px;font-size:11px;color:#8696a0;font-style:italic;">
+          😰 שנייה... מה לכתוב?
+        </div>
+
+        <!-- AI Magic Box -->
+        <div class="ai-magic">
+          <div class="ai-head">
+            <div class="ai-logo">🧠</div>
+            <div style="flex:1;">
+              <div class="ai-label">מה לענות לה? — 3 הצעות</div>
+              <div class="ai-sub">ניתחתי את השיחה: היא יוזמת, סקרנית, וטון חיובי</div>
+            </div>
+          </div>
+
+          <div class="ai-options">
+            <div class="ai-option picked">
+              <span class="opt-emoji">😏</span>
+              <div class="opt-text">"מתלבט בין סרט לבר... יש לך הצעה יותר טובה? 😉"</div>
+              <span class="opt-pick">✓ מומלץ</span>
+            </div>
+            <div class="ai-option">
+              <span class="opt-emoji">😎</span>
+              <div class="opt-text">"עוד אין תוכניות סופיות... מה את עושה במקרה?"</div>
+            </div>
+            <div class="ai-option">
+              <span class="opt-emoji">💕</span>
+              <div class="opt-text">"חשבתי לרגע על משהו אנחנו יחד 😌"</div>
+            </div>
+          </div>
+
+          <div class="ai-meta">
+            <div class="m-chip">📊 רמת עניין: <b style="color:#2eceff;">78%</b></div>
+            <div class="m-chip">⏰ ענה בעוד 2 דק'</div>
+            <div class="m-chip success">🎯 סיכוי דייט: גבוה</div>
+          </div>
+        </div>
+
+        <!-- His winning reply -->
+        <div class="wa-bubble mine" style="animation-delay:0.4s;">
+          <div class="b">
+            מתלבט בין סרט לבר... יש לך הצעה יותר טובה? 😉
+            <span class="time">21:45 <span class="check">✓✓</span></span>
+          </div>
+        </div>
+
+        <!-- Her enthusiastic response -->
+        <div class="wa-bubble her" style="animation-delay:0.7s;">
+          <div class="b">
+            😏 דווקא יש לי... מתי אתה פנוי?
+            <span class="time">21:45</span>
+          </div>
+        </div>
+
+        <!-- Result banner -->
+        <div class="result-banner">
+          <span style="font-size:16px;">💕</span>
+          <span>היא ענתה תוך 47 שניות · רמת העניין עלתה ל-92%</span>
+        </div>
+      </div>
     </div>
   </section>
 
