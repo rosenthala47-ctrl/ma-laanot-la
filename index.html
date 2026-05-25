@@ -1857,8 +1857,13 @@ async function generateAnswers() {
     payload = { ...base, mode:'phrase', intent };
   } else if (state.appMode === 'check') {
     const text = $('#checkInput')?.value.trim();
-    if (!text) { showToast('הדבק את ההודעה לבדיקה', 'error'); return null; }
-    payload = { ...base, mode:'check', text };
+    // In check mode, allow EITHER text OR image (or both — text as caption to image)
+    if (!text && !state.imageBase64) { showToast('הדבק טקסט או צרף תמונה לבדיקה', 'error'); return null; }
+    payload = { ...base, mode:'check', text: text || '' };
+    if (state.imageBase64) {
+      payload.imageBase64 = state.imageBase64;
+      payload.imageMediaType = state.imageMediaType;
+    }
   } else if (state.inputMode === 'image') {
     if (!state.imageBase64) { showToast('צרף תמונה קודם', 'error'); return null; }
     payload = { ...base, mode:'image', imageBase64:state.imageBase64, imageMediaType:state.imageMediaType };
@@ -2268,14 +2273,30 @@ function renderInputArea() {
     `;
   }
   if (state.appMode === 'check') {
+    const proCanImage = getLimits().hasImageUpload;
     return `
       <div class="card">
         <div class="card-title">🔍 ההודעה שאתה רוצה לבדוק לפני שאתה שולח</div>
         <div class="input-bubble">
-          <textarea id="checkInput" placeholder="הדבק את ההודעה שכתבת ואני אגיד לך אם זה טוב לשליחה, מה הבעיות, ואיך לשפר..."></textarea>
+          <textarea id="checkInput" placeholder="הדבק את ההודעה שכתבת ואני אגיד לך אם זה טוב לשליחה...
+
+או — צרף תמונה למטה ואני אבדוק גם אותה!"></textarea>
+          ${state.imageBase64 ? `
+            <div class="image-preview">
+              <img src="data:${state.imageMediaType};base64,${state.imageBase64}" alt="צילום" />
+              <button class="remove-img" id="rmImg">✕</button>
+            </div>
+          ` : ''}
+          <div class="input-actions">
+            <input type="file" id="fileIn" class="file-hidden" accept="image/*" />
+            <button class="input-action ${state.imageBase64?'attached':''} ${!proCanImage?'locked':''}" id="attachBtn" data-locked="${!proCanImage}">
+              ${!proCanImage ? '🔒 צרף תמונה (Pro)' : (state.imageBase64 ? '✓ תמונה צורפה' : '📷 צרף תמונה לבדיקה')}
+            </button>
+          </div>
         </div>
         <div class="text-dim" style="font-size:12px;margin-top:8px;line-height:1.5;">
-          💡 אני אבדוק נואשות, אורך, קלישאות, מחמאות גוף — כל מה שיכול לדפוק לך את ההודעה. ואני אציע ניסוח טוב יותר.
+          💡 אני אבדוק נואשות, אורך, קלישאות — כל מה שיכול לדפוק לך את ההודעה. <br/>
+          📸 גם תמונה? אגיד אם היא מתאימה למה שאתה רוצה לשדר.
         </div>
       </div>
     `;
@@ -3132,6 +3153,12 @@ function attachHandlers() {
     const limits = getLimits();
     if (m === 'opener' && !limits.hasOpener) { state.navTab='premium'; render(); showToast('"פתיחת שיחה" זמין ב-Plus ומעלה ⭐', 'error'); return; }
     if (m === 'phrase' && !limits.hasPhrase) { state.navTab='premium'; render(); showToast('"עזרת ניסוח" זמין ב-Plus ומעלה ⭐', 'error'); return; }
+    // Clear image when switching modes to avoid confusion
+    if (m !== state.appMode) {
+      state.imageBase64 = null;
+      state.imageMediaType = null;
+      state.inputMode = 'text';
+    }
     state.appMode = m;
     render();
   }));
@@ -3193,7 +3220,8 @@ function attachHandlers() {
   $('#attachBtn')?.addEventListener('click', () => {
     if (!getLimits().hasImageUpload) { haptic(20); state.navTab='premium'; render(); showToast('העלאת צילומי מסך זמינה ב-Pro 💎', 'error'); return; }
     haptic();
-    state.inputMode = 'image';
+    // In reply mode, switch input mode. In check mode, just add image alongside text.
+    if (state.appMode === 'reply') state.inputMode = 'image';
     $('#fileIn').click();
   });
   $('#fileIn')?.addEventListener('change', (e) => {
@@ -3880,18 +3908,37 @@ async function getAdminAuthHeader() {
   return { 'Authorization': `Bearer ${session.access_token}`, 'apikey': CONFIG.SUPABASE_ANON_KEY };
 }
 
-async function fetchAdminUsers(search = '') {
-  const headers = await getAdminAuthHeader();
-  const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/admin-users`, {
-    method: 'POST',
-    headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ search }),
-  });
-  if (!r.ok) {
-    const txt = await r.text().catch(()=>'');
-    throw new Error(`שגיאה (${r.status}) ${txt}`);
+// 30-second in-memory cache so re-opening the sheet is instant
+const _adminCache = { data: null, ts: 0, search: '' };
+async function fetchAdminUsers(search = '', useCache = true) {
+  const now = Date.now();
+  if (useCache && _adminCache.data && _adminCache.search === search && (now - _adminCache.ts) < 30000) {
+    return _adminCache.data;
   }
-  return r.json();
+  const headers = await getAdminAuthHeader();
+  // 25-second timeout (edge function cold start can be ~2-5 sec; allow margin)
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000);
+  try {
+    const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/admin-users`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ search }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!r.ok) {
+      const txt = await r.text().catch(()=>'');
+      throw new Error(`שגיאה (${r.status}) ${txt}`);
+    }
+    const data = await r.json();
+    _adminCache.data = data; _adminCache.ts = now; _adminCache.search = search;
+    return data;
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') throw new Error('הטעינה לקחה יותר מ-25 שניות. נסה שוב.');
+    throw err;
+  }
 }
 
 async function adminUpdateTier(userId, tier, cycle = 'monthly', days = 30) {
@@ -3924,9 +3971,25 @@ async function openAdminSheet(search = '') {
     <div class="sheet-title">🛡️ לוח בקרת אדמין</div>
     <div class="sheet-sub">תצוגה ושליטה ידנית במשתמשים ובמנויים.</div>
     <div id="adminBody">
-      <div style="text-align:center;padding:30px;color:var(--text-3);">טוען...</div>
+      <!-- Skeleton stats so user sees structure immediately -->
+      <div class="admin-stats" style="opacity:0.5;">
+        <div class="admin-stat"><div class="v">–</div><div class="l">סה"כ</div></div>
+        <div class="admin-stat free"><div class="v">–</div><div class="l">חינם</div></div>
+        <div class="admin-stat plus"><div class="v">–</div><div class="l">⭐ Plus</div></div>
+        <div class="admin-stat pro"><div class="v">–</div><div class="l">💎 Pro</div></div>
+      </div>
+      <div id="adminLoadMsg" style="text-align:center;padding:30px 20px;color:var(--text-3);">
+        <div style="font-size:32px;margin-bottom:10px;">⏳</div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-2);">טוען...</div>
+        <div style="font-size:11.5px;margin-top:6px;">בפעם הראשונה אחרי הפסקה זה לוקח 2-5 שניות</div>
+      </div>
     </div>
   `);
+  // Try to render from cache instantly if available
+  if (_adminCache.data && _adminCache.search === search && (Date.now() - _adminCache.ts) < 30000) {
+    renderAdminBody(_adminCache.data, search);
+    return;
+  }
   try {
     const data = await fetchAdminUsers(search);
     renderAdminBody(data, search);
@@ -3936,9 +3999,16 @@ async function openAdminSheet(search = '') {
         <div class="empty-emoji">⚠️</div>
         <div class="empty-title">לא הצלחתי לטעון</div>
         <div class="empty-sub">${esc(err.message)}</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;">
+          <button class="btn btn-secondary" id="adminRetry">🔄 נסה שוב</button>
+        </div>
         <div class="muted-note" style="margin-top:14px;">ייתכן שפונקציית ה-Edge עדיין לא נפרסה. ראה ADMIN_SETUP.md</div>
       </div>
     `;
+    $('#adminRetry')?.addEventListener('click', () => {
+      _adminCache.data = null; // bust cache
+      openAdminSheet(search);
+    });
   }
 }
 
@@ -4071,6 +4141,7 @@ function openAdminEditTierSheet({ userId, email, currentTier }) {
     try {
       const days = pickedCycle === 'yearly' ? 365 : 30;
       await adminUpdateTier(userId, pickedTier, pickedCycle, days);
+      _adminCache.data = null; // bust cache after change
       closeSheet();
       showToast(`✅ עודכן ל-${pickedTier.toUpperCase()}`, 'success');
       // Re-open admin panel to see refreshed state
