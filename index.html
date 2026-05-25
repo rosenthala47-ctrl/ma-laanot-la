@@ -3979,27 +3979,36 @@ async function fetchAdminUsers(search = '', useCache = true) {
     return _adminCache.data;
   }
   const headers = await getAdminAuthHeader();
-  // 25-second timeout (edge function cold start can be ~2-5 sec; allow margin)
+
+  // Belt-and-suspenders timeout: AbortController + Promise.race
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000);
+  const timeoutMs = 25000;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  const fetchPromise = fetch(`${CONFIG.SUPABASE_URL}/functions/v1/admin-users`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ search }),
+    signal: controller.signal,
+  });
+
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(`הטעינה לקחה יותר מ-${timeoutMs/1000} שניות. ייתכן שהפונקציה לא נפרסה או יש בעיית רשת. נסה שוב, ואם זה ממשיך — בדוק את ה-Logs ב-Supabase Dashboard.`)), timeoutMs);
+  });
+
   try {
-    const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/admin-users`, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ search }),
-      signal: controller.signal,
-    });
+    const r = await Promise.race([fetchPromise, timeoutPromise]);
     clearTimeout(timer);
     if (!r.ok) {
       const txt = await r.text().catch(()=>'');
-      throw new Error(`שגיאה (${r.status}) ${txt}`);
+      throw new Error(`שגיאה ${r.status}: ${txt || 'אין פרטים'}`);
     }
     const data = await r.json();
     _adminCache.data = data; _adminCache.ts = now; _adminCache.search = search;
     return data;
   } catch (err) {
     clearTimeout(timer);
-    if (err.name === 'AbortError') throw new Error('הטעינה לקחה יותר מ-25 שניות. נסה שוב.');
+    if (err.name === 'AbortError') throw new Error('הטעינה בוטלה (timeout).');
     throw err;
   }
 }
@@ -4043,33 +4052,56 @@ async function openAdminSheet(search = '') {
       </div>
       <div id="adminLoadMsg" style="text-align:center;padding:30px 20px;color:var(--text-3);">
         <div style="font-size:32px;margin-bottom:10px;">⏳</div>
-        <div style="font-weight:700;font-size:14px;color:var(--text-2);">טוען...</div>
-        <div style="font-size:11.5px;margin-top:6px;">בפעם הראשונה אחרי הפסקה זה לוקח 2-5 שניות</div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-2);" id="adminLoadingTxt">טוען...</div>
+        <div style="font-size:11.5px;margin-top:6px;" id="adminLoadingHint">בפעם הראשונה אחרי הפסקה זה לוקח 2-5 שניות</div>
       </div>
     </div>
   `);
-  // Try to render from cache instantly if available
+
+  // Progress hint update so user knows we're still alive
+  const startTs = Date.now();
+  const hintTimer = setInterval(() => {
+    const sec = Math.floor((Date.now() - startTs) / 1000);
+    const hint = $('#adminLoadingHint');
+    if (hint) {
+      if (sec < 5) hint.textContent = 'בפעם הראשונה אחרי הפסקה זה לוקח 2-5 שניות';
+      else if (sec < 12) hint.textContent = `${sec} שניות... השרת מתעורר (Cold start), עוד רגע`;
+      else if (sec < 22) hint.textContent = `${sec} שניות... זה ייקח עוד קצת`;
+      else hint.textContent = `${sec} שניות... כמעט נכנע, נסה שוב אם זה לא יעבוד`;
+    }
+  }, 1000);
+
+  // Try cache first
   if (_adminCache.data && _adminCache.search === search && (Date.now() - _adminCache.ts) < 30000) {
+    clearInterval(hintTimer);
     renderAdminBody(_adminCache.data, search);
     return;
   }
+
   try {
     const data = await fetchAdminUsers(search);
+    clearInterval(hintTimer);
+    // Validate response shape
+    if (!data || typeof data !== 'object' || !data.stats || !Array.isArray(data.users)) {
+      throw new Error('השרת החזיר תשובה במבנה לא צפוי: ' + JSON.stringify(data).slice(0, 200));
+    }
     renderAdminBody(data, search);
   } catch (err) {
+    clearInterval(hintTimer);
+    console.error('[admin] load failed:', err);
     $('#adminBody').innerHTML = `
       <div class="empty-state" style="padding:20px;">
         <div class="empty-emoji">⚠️</div>
         <div class="empty-title">לא הצלחתי לטעון</div>
-        <div class="empty-sub">${esc(err.message)}</div>
+        <div class="empty-sub" style="word-break:break-word;">${esc(err.message || String(err))}</div>
         <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;">
           <button class="btn btn-secondary" id="adminRetry">🔄 נסה שוב</button>
         </div>
-        <div class="muted-note" style="margin-top:14px;">ייתכן שפונקציית ה-Edge עדיין לא נפרסה. ראה ADMIN_SETUP.md</div>
+        <div class="muted-note" style="margin-top:14px;">בדוק ב-Console (F12) לפרטים נוספים</div>
       </div>
     `;
     $('#adminRetry')?.addEventListener('click', () => {
-      _adminCache.data = null; // bust cache
+      _adminCache.data = null;
       openAdminSheet(search);
     });
   }
