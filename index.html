@@ -1615,8 +1615,10 @@ const TIER_LIMITS = {
     hasOpener:false, hasPhrase:false,
     hasCoach:false, hasCoachDeep:false,
     hasImageUpload:false, hasMemory:false, hasPriority:false,
+    replyImagePerDay:0,        // screenshots in reply mode: 0 for free
+    hasCheckImage:false,        // images in check mode: locked
     hasCloudSync:false,
-    freeCoachPerDay:1, // 1 free Coach analysis per day (taste the value)
+    freeCoachPerDay:1,
     ads:true,
     lockedStyles:[],
   },
@@ -1624,7 +1626,9 @@ const TIER_LIMITS = {
     dailyGenerations:Infinity, crushProfiles:10,
     hasOpener:true, hasPhrase:true,
     hasCoach:true, hasCoachDeep:false,
-    hasImageUpload:false, hasMemory:false, hasPriority:false,
+    hasImageUpload:true, hasMemory:false, hasPriority:false,
+    replyImagePerDay:10,       // 10 screenshots/day in reply mode
+    hasCheckImage:false,        // check-mode image stays Pro-only
     hasCloudSync:true,
     ads:false,
     lockedStyles:[],
@@ -1634,6 +1638,8 @@ const TIER_LIMITS = {
     hasOpener:true, hasPhrase:true,
     hasCoach:true, hasCoachDeep:true,
     hasImageUpload:true, hasMemory:true, hasPriority:true,
+    replyImagePerDay:Infinity, // unlimited screenshots
+    hasCheckImage:true,         // check-mode image enabled
     hasCloudSync:true,
     ads:false,
     lockedStyles:[],
@@ -1772,6 +1778,19 @@ function canUseCoachToday() {
   const lim = getLimits();
   if (lim.hasCoach) return true; // Plus/Pro always
   return freeCoachRemaining() > 0;
+}
+
+// ---- daily reply-image upload tracking (Plus: 10/day, Pro: unlimited) ----
+function replyImageKey() { return `mll2_reply_img_${state.user?.id||'a'}_${new Date().toISOString().slice(0,10)}`; }
+function getReplyImagesUsedToday() { return parseInt(localStorage.getItem(replyImageKey())||'0', 10); }
+function bumpReplyImageUsage() { localStorage.setItem(replyImageKey(), String(getReplyImagesUsedToday()+1)); }
+function replyImagesRemainingToday() {
+  const lim = getLimits().replyImagePerDay || 0;
+  if (lim === Infinity) return Infinity;
+  return Math.max(0, lim - getReplyImagesUsedToday());
+}
+function canUploadReplyImage() {
+  return replyImagesRemainingToday() > 0;
 }
 
 // ---------- streak ----------
@@ -2070,7 +2089,7 @@ function renderPaywallOnboarding() {
         <div class="vp-icon">📸</div>
         <div class="vp-info">
           <div class="vp-title">צילום מסך = ניתוח</div>
-          <div class="vp-desc">ב-Pro: צלם את השיחה ב-WhatsApp ותן ל-AI לקרוא ולענות במקומך.</div>
+          <div class="vp-desc">צלם את השיחה ב-WhatsApp ותן ל-AI לקרוא ולענות במקומך. ב-Plus 10 ביום, ב-Pro ללא הגבלה.</div>
         </div>
       </div>
     </div>
@@ -2273,7 +2292,7 @@ function renderInputArea() {
     `;
   }
   if (state.appMode === 'check') {
-    const proCanImage = getLimits().hasImageUpload;
+    const proCanImage = getLimits().hasCheckImage;
     return `
       <div class="card">
         <div class="card-title">🔍 ההודעה שאתה רוצה לבדוק לפני שאתה שולח</div>
@@ -2290,7 +2309,7 @@ function renderInputArea() {
           <div class="input-actions">
             <input type="file" id="fileIn" class="file-hidden" accept="image/*" />
             <button class="input-action ${state.imageBase64?'attached':''} ${!proCanImage?'locked':''}" id="attachBtn" data-locked="${!proCanImage}">
-              ${!proCanImage ? '🔒 צרף תמונה (Pro)' : (state.imageBase64 ? '✓ תמונה צורפה' : '📷 צרף תמונה לבדיקה')}
+              ${!proCanImage ? '🔒 בדיקת תמונה (Pro 💎)' : (state.imageBase64 ? '✓ תמונה צורפה' : '📷 צרף תמונה לבדיקה')}
             </button>
           </div>
         </div>
@@ -2322,9 +2341,25 @@ function renderInputArea() {
         ` : ''}
         <div class="input-actions">
           <input type="file" id="fileIn" class="file-hidden" accept="image/*" />
-          <button class="input-action ${state.imageBase64?'attached':''} ${!getLimits().hasImageUpload?'locked':''}" id="attachBtn" data-locked="${!getLimits().hasImageUpload}">
-            ${!getLimits().hasImageUpload ? '🔒 צילום מסך (Pro)' : '📎 צילום מסך'}
-          </button>
+          ${(() => {
+            const lim = getLimits();
+            const dailyLim = lim.replyImagePerDay || 0;
+            const remaining = replyImagesRemainingToday();
+            const tier = getTier();
+            // Free user
+            if (dailyLim === 0) {
+              return `<button class="input-action locked" id="attachBtn" data-locked="true">🔒 צילום מסך (Plus)</button>`;
+            }
+            // Plus user with daily limit
+            if (dailyLim !== Infinity) {
+              if (remaining === 0) {
+                return `<button class="input-action locked" id="attachBtn" data-locked="limit">📷 צילום מסך (0/${dailyLim} היום)</button>`;
+              }
+              return `<button class="input-action ${state.imageBase64?'attached':''}" id="attachBtn">📎 צילום מסך · ${remaining}/${dailyLim} היום</button>`;
+            }
+            // Pro - unlimited
+            return `<button class="input-action ${state.imageBase64?'attached':''}" id="attachBtn">📎 צילום מסך · ♾️</button>`;
+          })()}
           ${isImg && !state.imageBase64 ? `<button class="input-action" id="backToText">↩ חזור לטקסט</button>` : ''}
         </div>
       </div>
@@ -2862,6 +2897,7 @@ function renderPremium() {
       <div class="pw-trial">🎁 7 ימי ניסיון חינם · בלי התחייבות</div>
       <ul class="pw-feats">
         <li><span class="check">✓</span><span class="highlight">♾️ תשובות ללא הגבלה</span> — בלי לספור</li>
+        <li><span class="check">✓</span><span class="highlight">📸 10 צילומי מסך ליום</span> לניתוח שיחות</li>
         <li><span class="check">✓</span>כל 8 הסגנונות פתוחים</li>
         <li><span class="check">✓</span>🚀 פתיחת שיחה + ✍️ עזרת ניסוח</li>
         <li><span class="check">✓</span>🧠 AI Chat Coach — ניתוח שיחה מלא</li>
@@ -2887,7 +2923,8 @@ function renderPremium() {
       <div class="pw-trial">🎁 7 ימי ניסיון חינם · ביטול בכל רגע</div>
       <ul class="pw-feats">
         <li><span class="check">✓</span><span class="highlight">כל מה ש-Plus נותן, ועוד:</span></li>
-        <li><span class="check">✓</span>📸 העלאת צילומי מסך מ-WhatsApp</li>
+        <li><span class="check">✓</span><span class="highlight">♾️ צילומי מסך ללא הגבלה</span> (Plus: 10 ליום)</li>
+        <li><span class="check">✓</span>🔍 בדיקת תמונות במצב "בדיקה" (סלפי/מם לפני שליחה)</li>
         <li><span class="check">✓</span>🧬 Deep Coach — ניתוח אישיות וטון</li>
         <li><span class="check">✓</span>🔬 ניתוח מסלול היחסים לאורך זמן</li>
         <li><span class="check">✓</span>🎯 מצב אסטרטגיה — תוכנית לכל קראש</li>
@@ -3218,10 +3255,32 @@ function attachHandlers() {
 
   // ---- attach image ----
   $('#attachBtn')?.addEventListener('click', () => {
-    if (!getLimits().hasImageUpload) { haptic(20); state.navTab='premium'; render(); showToast('העלאת צילומי מסך זמינה ב-Pro 💎', 'error'); return; }
+    const lim = getLimits();
+    // CHECK mode: needs hasCheckImage (Pro only)
+    if (state.appMode === 'check') {
+      if (!lim.hasCheckImage) {
+        haptic(20); state.navTab='premium'; render();
+        showToast('בדיקת תמונה זמינה ב-Pro 💎', 'error');
+        return;
+      }
+      haptic();
+      $('#fileIn').click();
+      return;
+    }
+    // REPLY mode: gate by replyImagePerDay
+    const dailyLim = lim.replyImagePerDay || 0;
+    if (dailyLim === 0) {
+      haptic(20); state.navTab='premium'; render();
+      showToast('העלאת צילומי מסך זמינה ב-Plus ⭐ (10 ביום) ו-Pro 💎 (ללא הגבלה)', 'error');
+      return;
+    }
+    if (replyImagesRemainingToday() <= 0) {
+      haptic(20); state.navTab='premium'; render();
+      showToast(`נגמרו לך 10 צילומי המסך היומיים. שדרג ל-Pro לתמונות ללא הגבלה 💎`, 'error');
+      return;
+    }
     haptic();
-    // In reply mode, switch input mode. In check mode, just add image alongside text.
-    if (state.appMode === 'reply') state.inputMode = 'image';
+    state.inputMode = 'image';
     $('#fileIn').click();
   });
   $('#fileIn')?.addEventListener('change', (e) => {
@@ -3360,6 +3419,10 @@ async function handleGenerate() {
     const answers = await generateAnswers();
     if (answers) {
       bumpUsage();
+      // Track screenshot uploads in reply mode against daily quota
+      if (state.appMode === 'reply' && state.inputMode === 'image' && state.imageBase64) {
+        bumpReplyImageUsage();
+      }
       const s = bumpStreak();
       if (answers.__check) {
         renderCheckResult(answers);
