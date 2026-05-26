@@ -300,6 +300,44 @@ textarea{min-height:160px;line-height:1.7}
 .streak-box .streak-info p{font-size:13px;color:var(--text2)}
 
 /* ─────────────────────────────────────────────────
+   AI TUTOR CHAT
+───────────────────────────────────────────────── */
+#s-ai .scroll{display:flex;flex-direction:column;gap:0;padding:8px 12px 0}
+.chat-messages{flex:1;display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
+.chat-msg{display:flex;gap:8px;align-items:flex-end;animation:fadeIn .3s}
+.chat-msg.user{flex-direction:row-reverse}
+.chat-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:var(--surface2)}
+.chat-bubble{max-width:78%;padding:11px 14px;border-radius:18px;font-size:14px;line-height:1.55;position:relative}
+.chat-msg.ai .chat-bubble{background:var(--surface2);border:1px solid var(--stroke2);border-bottom-left-radius:4px}
+.chat-msg.user .chat-bubble{background:var(--g1);color:#fff;border-bottom-right-radius:4px}
+.chat-bubble .bubble-text{white-space:pre-wrap}
+.chat-bubble .bubble-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.like-btn{background:none;border:1px solid var(--stroke2);border-radius:100px;padding:3px 10px;font-size:12px;cursor:pointer;transition:all .2s;color:var(--text2)}
+.like-btn:hover{background:var(--surface3)}
+.like-btn.liked{background:rgba(61,255,160,.15);border-color:var(--green);color:var(--green)}
+.like-btn.disliked{background:rgba(255,82,82,.1);border-color:var(--red);color:var(--red)}
+.typing-indicator{display:flex;align-items:center;gap:4px;padding:10px 14px;background:var(--surface2);border:1px solid var(--stroke2);border-radius:18px;border-bottom-left-radius:4px;width:fit-content}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);animation:typingBounce 1.4s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+.chat-input-bar{display:flex;gap:8px;padding:10px 12px calc(var(--safe-bottom) + 10px);background:rgba(15,12,26,.95);backdrop-filter:blur(12px);border-top:1px solid var(--stroke);flex-shrink:0}
+.chat-input{flex:1;background:var(--surface2);border:1px solid var(--stroke2);border-radius:22px;padding:10px 16px;font-size:14px;resize:none;max-height:100px;line-height:1.4}
+.chat-send{width:42px;height:42px;border-radius:50%;background:var(--g1);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:transform .15s var(--spring),filter .2s}
+.chat-send:hover{filter:brightness(1.1)}
+.chat-send:active{transform:scale(.9)}
+.chat-send:disabled{opacity:.5;cursor:not-allowed}
+.ai-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:100px;font-size:11px;font-weight:700;background:linear-gradient(135deg,rgba(124,111,247,.3),rgba(176,106,255,.3));border:1px solid rgba(176,106,255,.4);color:var(--purple);margin-bottom:6px}
+
+/* AI SETUP */
+#s-ai-setup .scroll{display:flex;flex-direction:column;gap:20px;padding-top:20px}
+.setup-step{display:flex;gap:12px;align-items:flex-start}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-body h3{font-size:15px;font-weight:700;margin-bottom:4px}
+.step-body p{font-size:13px;color:var(--text2);line-height:1.5}
+.step-body a{color:var(--blue);text-decoration:none;font-weight:600}
+
+/* ─────────────────────────────────────────────────
    RESULT SCREEN
 ───────────────────────────────────────────────── */
 .result-overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(15,12,26,.85);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s;padding:24px}
@@ -369,6 +407,11 @@ textarea{min-height:160px;line-height:1.7}
       <div class="menu-item" onclick="startActivity()">
         <div class="menu-icon" style="background:var(--g2)">🎮</div>
         <div class="info"><h3>Practice</h3><p>Games, quizzes & activities</p></div>
+        <div class="arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="openAITutor()">
+        <div class="menu-icon" style="background:linear-gradient(135deg,#7c6ff7,#b06aff)">🤖</div>
+        <div class="info"><h3>AI Tutor</h3><p>Chat with AI, learn from conversation</p></div>
         <div class="arrow">›</div>
       </div>
       <div class="menu-item" onclick="goScreen('s-progress')">
@@ -459,6 +502,11 @@ textarea{min-height:160px;line-height:1.7}
     <div class="act-card act-spell" onclick="startSpelling()">
       <span class="act-icon">✍️</span>
       <div class="act-info"><h3>Spelling Practice</h3><p>Type the word correctly</p></div>
+      <span class="act-arrow">›</span>
+    </div>
+    <div class="act-card" style="background:linear-gradient(135deg,rgba(124,111,247,.15),rgba(176,106,255,.05));border-color:rgba(124,111,247,.3);color:var(--purple)" onclick="openAITutor()">
+      <span class="act-icon">🤖</span>
+      <div class="act-info"><h3>AI Tutor</h3><p>Chat & get personalized help</p></div>
       <span class="act-arrow">›</span>
     </div>
     <div class="act-card act-progress" onclick="goScreen('s-progress')">
@@ -561,6 +609,63 @@ textarea{min-height:160px;line-height:1.7}
   </div>
   <div class="scroll">
     <div id="progress-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ AI SETUP ═══════════════════ -->
+<div id="s-ai-setup" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">🤖 AI Tutor Setup</div>
+  </div>
+  <div class="scroll">
+    <div style="text-align:center;padding:12px 0 4px">
+      <div style="font-size:52px;margin-bottom:10px">🤖</div>
+      <h2>Connect AI Tutor</h2>
+      <p style="color:var(--text2);font-size:14px;margin-top:6px;line-height:1.6">
+        Get a <strong>free</strong> API key from Groq to unlock<br/>the AI conversation tutor.
+      </p>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Get your free API key</h3>
+        <p>Go to <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>, sign up (free), and create a new API key.</p>
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Paste your key below</h3>
+        <div class="input-wrap" style="margin-top:8px">
+          <input type="text" id="ai-key-input" placeholder="gsk_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" autocorrect="off" spellcheck="false" style="font-family:monospace;font-size:13px"/>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveAIKey()">🚀 Start AI Tutor</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ AI TUTOR CHAT ═══════════════════ -->
+<div id="s-ai" class="screen" style="padding-bottom:0">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">
+      <span>🤖 AI Tutor</span>
+      <div class="ai-badge" style="margin-right:4px">LIVE</div>
+    </div>
+    <button class="btn btn-sm btn-secondary" onclick="resetAIChat()" title="New chat">↺</button>
+  </div>
+  <div class="scroll" id="ai-chat-scroll">
+    <div class="chat-messages" id="ai-chat-messages"></div>
+  </div>
+  <div class="chat-input-bar">
+    <textarea class="chat-input" id="ai-chat-input" rows="1"
+      placeholder="Type a message..."
+      onkeydown="aiInputKey(event)"
+      oninput="autoResize(this)"></textarea>
+    <button class="chat-send" id="ai-send-btn" onclick="sendUserMessage()">➤</button>
   </div>
 </div>
 
@@ -1370,9 +1475,219 @@ function shuffle(arr) {
 function esc(s){ const d=document.createElement('div');d.textContent=s||'';return d.innerHTML; }
 
 /* ================================================================
+   AI TUTOR
+================================================================ */
+let aiMessages = [];      // [{role, content, id, liked}]
+let aiLikedExamples = []; // stored good responses
+let aiThinking = false;
+let aiMsgId = 0;
+
+function loadAIPrefs() {
+  try { aiLikedExamples = JSON.parse(localStorage.getItem('vb_ai_likes') || '[]'); } catch(e){ aiLikedExamples=[]; }
+}
+function saveAIPrefs() { localStorage.setItem('vb_ai_likes', JSON.stringify(aiLikedExamples.slice(-10))); }
+
+function openAITutor() {
+  if(vocab.length < 1) { showToast('Add words first!','error'); return; }
+  const key = localStorage.getItem('vb_ai_key');
+  if(!key) { goScreen('s-ai-setup'); return; }
+  goScreen('s-ai');
+  if(aiMessages.length === 0) initAIChat();
+}
+
+function saveAIKey() {
+  const val = document.getElementById('ai-key-input').value.trim();
+  if(!val || val.length < 10) { showToast('Please enter a valid API key','error'); return; }
+  localStorage.setItem('vb_ai_key', val);
+  goScreen('s-ai', true);
+  if(aiMessages.length === 0) initAIChat();
+}
+
+function buildSystemPrompt() {
+  const wordList = vocab.slice(0,40).map(w=>`${w.en} = ${w.he}`).join(', ');
+  const likedSnippets = aiLikedExamples.slice(-4).map(e=>`"${e}"`).join('\n');
+  return `You are an enthusiastic English tutor helping a Hebrew-speaking student learn vocabulary.
+
+The student's word list: ${wordList}
+
+Your job: hold short, engaging conversations that help the student practice these words. You:
+- Proactively pick words to practice
+- Ask the student to use words in sentences
+- Give encouraging feedback with gentle corrections
+- Keep replies SHORT (2-4 sentences max)
+- Occasionally mix in a Hebrew word or phrase to help explain
+- Celebrate progress with emojis 🎉
+${likedSnippets ? `\nExamples of responses the student especially liked (match this style):\n${likedSnippets}` : ''}
+
+Start conversations yourself — don't wait for the student to lead. Be warm, fun, and patient.`;
+}
+
+async function callAI(messages) {
+  const key = localStorage.getItem('vb_ai_key');
+  if(!key) return null;
+  const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+  const systemPrompt = buildSystemPrompt();
+
+  const r = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      messages: [{ role:'system', content: systemPrompt }, ...messages.map(m=>({role:m.role,content:m.content}))],
+      max_tokens: 180,
+      temperature: 0.85
+    })
+  });
+
+  if(!r.ok) {
+    const err = await r.json().catch(()=>({}));
+    const msg = err?.error?.message || `Error ${r.status}`;
+    if(r.status === 401) throw new Error('Invalid API key. Go back and update it in Setup.');
+    throw new Error(msg);
+  }
+  const d = await r.json();
+  return d.choices?.[0]?.message?.content?.trim() || null;
+}
+
+async function initAIChat() {
+  aiMessages = [];
+  renderAIMessages();
+  showTyping();
+  try {
+    const greeting = await callAI([]);
+    hideTyping();
+    if(greeting) appendAIMessage(greeting);
+  } catch(e) {
+    hideTyping();
+    appendAIMessage(`Oops! ${e.message}`);
+  }
+}
+
+function resetAIChat() {
+  if(!confirm('Start a new conversation?')) return;
+  aiMessages = [];
+  initAIChat();
+}
+
+async function sendUserMessage() {
+  const inp = document.getElementById('ai-chat-input');
+  const text = inp?.value?.trim();
+  if(!text || aiThinking) return;
+  inp.value = '';
+  autoResize(inp);
+
+  const userMsg = { role:'user', content:text, id: ++aiMsgId };
+  aiMessages.push(userMsg);
+  renderAIMessages();
+  scrollAIToBottom();
+
+  aiThinking = true;
+  document.getElementById('ai-send-btn').disabled = true;
+  showTyping();
+
+  try {
+    const reply = await callAI(aiMessages);
+    hideTyping();
+    if(reply) appendAIMessage(reply);
+  } catch(e) {
+    hideTyping();
+    appendAIMessage(`⚠️ ${e.message}`);
+  } finally {
+    aiThinking = false;
+    document.getElementById('ai-send-btn').disabled = false;
+  }
+}
+
+function appendAIMessage(content) {
+  const msg = { role:'ai', content, id: ++aiMsgId, liked: null };
+  aiMessages.push(msg);
+  renderAIMessages();
+  scrollAIToBottom();
+}
+
+function renderAIMessages() {
+  const el = document.getElementById('ai-chat-messages');
+  if(!el) return;
+  if(aiMessages.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:30px 16px;color:var(--text2)">
+      <div style="font-size:40px;margin-bottom:10px">🤖</div>
+      <p style="font-size:14px;line-height:1.6">The AI tutor is starting the conversation…</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = aiMessages.map(m => {
+    if(m.role === 'user') {
+      return `<div class="chat-msg user">
+        <div class="chat-avatar">😊</div>
+        <div class="chat-bubble"><div class="bubble-text">${esc(m.content)}</div></div>
+      </div>`;
+    }
+    const likedClass = m.liked === true ? 'liked' : m.liked === false ? 'disliked' : '';
+    return `<div class="chat-msg ai">
+      <div class="chat-avatar">🤖</div>
+      <div class="chat-bubble">
+        <div class="bubble-text">${esc(m.content)}</div>
+        <div class="bubble-actions">
+          <button class="like-btn ${m.liked===true?'liked':''}" onclick="rateMsg(${m.id},true)">👍 Helpful</button>
+          <button class="like-btn ${m.liked===false?'disliked':''}" onclick="rateMsg(${m.id},false)">👎 Not helpful</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function rateMsg(id, liked) {
+  const msg = aiMessages.find(m=>m.id===id);
+  if(!msg) return;
+  msg.liked = liked;
+  if(liked && msg.content.length > 20) {
+    // Store as a positive example for future prompts
+    aiLikedExamples.push(msg.content.slice(0, 120));
+    saveAIPrefs();
+    showToast('Got it! AI will learn your style 👍','success');
+  } else if(!liked) {
+    showToast("Noted — AI will try a different approach",'info');
+  }
+  renderAIMessages();
+}
+
+let typingEl = null;
+function showTyping() {
+  const el = document.getElementById('ai-chat-messages');
+  if(!el) return;
+  typingEl = document.createElement('div');
+  typingEl.className = 'chat-msg ai';
+  typingEl.id = 'typing-indicator';
+  typingEl.innerHTML = `<div class="chat-avatar">🤖</div>
+    <div class="typing-indicator">
+      <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+    </div>`;
+  el.appendChild(typingEl);
+  scrollAIToBottom();
+}
+function hideTyping() {
+  document.getElementById('typing-indicator')?.remove();
+}
+
+function scrollAIToBottom() {
+  const scroll = document.getElementById('ai-chat-scroll');
+  if(scroll) setTimeout(()=>{ scroll.scrollTop = scroll.scrollHeight; }, 80);
+}
+
+function aiInputKey(e) {
+  if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendUserMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+/* ================================================================
    BOOT
 ================================================================ */
 load();
+loadAIPrefs();
 </script>
 </body>
 </html>
