@@ -1964,11 +1964,12 @@ window.addEventListener('error', (ev) => {
 });
 
 // ===================================================================
-// BROWSER BACK NAVIGATION — swipe back/Android back goes to previous
-// screen within the app, doesn't exit.
+// BROWSER BACK NAVIGATION — swipe back/Android back
+// Order: open sheet -> previous screen -> home -> exit confirmation
 // ===================================================================
 const _navStack = []; // stack of {tab, screen}
 let _isHandlingPop = false;
+let _allowExitOnNextPop = false; // set true when user confirms exit
 
 function pushNavState(tab, screen) {
   if (_isHandlingPop) return;
@@ -1980,29 +1981,82 @@ function pushNavState(tab, screen) {
 }
 
 window.addEventListener('popstate', (e) => {
+  // If user confirmed exit, let this pop pass through
+  if (_allowExitOnNextPop) {
+    _allowExitOnNextPop = false;
+    return;
+  }
+
   _isHandlingPop = true;
   try {
-    // If we have history left in our stack, pop and navigate
+    // PRIORITY 1: If a sheet is open (any sheet — profile, admin, etc.),
+    // close it first instead of navigating.
+    const sheetBg = document.getElementById('sheetBg');
+    if (sheetBg) {
+      try { closeSheet(); } catch {}
+      // Re-push state so we don't accidentally exit
+      history.pushState({ tab: state.navTab, screen: state.screen, type: 'guard' }, '', '');
+      return;
+    }
+
+    // PRIORITY 2: If we have history left in our stack, pop and navigate
     if (_navStack.length > 1) {
       _navStack.pop(); // remove current
       const prev = _navStack[_navStack.length - 1];
       if (prev) {
-        // Close any open sheet first
-        try { closeSheet(); } catch {}
         state.navTab = prev.tab || 'home';
         if (prev.screen) state.screen = prev.screen;
-        // Re-add a state so the user can swipe again
         history.pushState({ tab: state.navTab, screen: state.screen, idx: _navStack.length - 1 }, '', '');
         render();
         return;
       }
     }
-    // No history left — re-add a state to keep the user inside the app
-    history.pushState({ tab: state.navTab, screen: state.screen, idx: 0 }, '', '');
+
+    // PRIORITY 3: Stack empty, but we're NOT at home → go to home first
+    if (state.navTab !== 'home' && state.screen === 'main') {
+      state.navTab = 'home';
+      _navStack.length = 0;
+      _navStack.push({ tab: 'home', screen: state.screen });
+      history.pushState({ tab: 'home', screen: state.screen, idx: 0 }, '', '');
+      render();
+      return;
+    }
+
+    // PRIORITY 4: We're at home with empty stack → show exit confirmation
+    showExitConfirmDialog();
+    history.pushState({ tab: state.navTab, screen: state.screen, type: 'exitGuard' }, '', '');
   } finally {
     _isHandlingPop = false;
   }
 });
+
+function showExitConfirmDialog() {
+  // Don't open the same dialog twice
+  if (document.getElementById('exitConfirmDialog')) return;
+  try {
+    openSheet(`
+      <div id="exitConfirmDialog" style="text-align:center;padding:14px 0 6px;">
+        <div style="font-size:64px;line-height:1;margin-bottom:14px;">👋</div>
+        <div class="sheet-title" style="margin-bottom:10px;">לצאת מהאפליקציה?</div>
+        <div class="sheet-sub" style="margin-bottom:20px;">ההיסטוריה והפרופילים שלך נשמרים. תוכל לחזור בכל רגע.</div>
+        <button class="btn btn-primary" id="stayInAppBtn" style="margin-bottom:10px;">🏠 להישאר באפליקציה</button>
+        <button class="btn btn-danger" id="exitAppBtn">🚪 כן, צא</button>
+      </div>
+    `);
+    setTimeout(() => {
+      const stayBtn = document.getElementById('stayInAppBtn');
+      const exitBtn = document.getElementById('exitAppBtn');
+      stayBtn?.addEventListener('click', () => { try { haptic(); } catch {} closeSheet(); });
+      exitBtn?.addEventListener('click', () => {
+        try { haptic(20); } catch {}
+        closeSheet();
+        _allowExitOnNextPop = true;
+        // Trigger the actual back navigation that will exit
+        setTimeout(() => history.back(), 150);
+      });
+    }, 50);
+  } catch (e) { console.warn('exit dialog failed:', e); }
+}
 
 // Patched render-like helper: call this AFTER changing tab/screen and BEFORE render()
 function navigate(updates) {
