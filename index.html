@@ -1859,6 +1859,10 @@ async function deleteCrush(id) {
 async function generateAnswers() {
   const crush = state.crushes.find(c => c.id === state.selectedCrushId) || null;
   const recentHistory = crush ? buildHistorySummary(crush.id, 3) : null;
+  // === Learning loop: pull user's recent thumbs-up/down examples for personalization ===
+  const learned = getLearnedExamples(state.appMode, state.selectedStyle, 3);
+  // === Coach context: recent coach analyses for this crush, as additional signal ===
+  const coachContextForCrush = crush ? getRecentCoachContext(crush.id, 2) : null;
   const base = {
     style: state.selectedStyle,
     situation: state.selectedSituation || 'auto',
@@ -1866,6 +1870,9 @@ async function generateAnswers() {
     userGender: state.profile?.gender || null,
     userName: state.user?.user_metadata?.full_name || null,
     recentHistory, // string of last 3 interactions, or null
+    learnedGood: learned.good, // [{input, output}] - the user's favorites
+    learnedBad: learned.bad,   // [{input, output}] - to avoid
+    coachContext: coachContextForCrush, // optional string from past coach analyses
   };
   let payload;
   if (state.appMode === 'opener') {
@@ -1955,6 +1962,55 @@ window.addEventListener('error', (ev) => {
   console.error('Global error:', ev.error || ev.message);
   try { showToast('שגיאה גלובלית: ' + (ev.error?.message || ev.message), 'error'); } catch {}
 });
+
+// ===================================================================
+// BROWSER BACK NAVIGATION — swipe back/Android back goes to previous
+// screen within the app, doesn't exit.
+// ===================================================================
+const _navStack = []; // stack of {tab, screen}
+let _isHandlingPop = false;
+
+function pushNavState(tab, screen) {
+  if (_isHandlingPop) return;
+  const top = _navStack[_navStack.length - 1];
+  // Don't push duplicate consecutive entries
+  if (top && top.tab === tab && top.screen === screen) return;
+  _navStack.push({ tab, screen });
+  history.pushState({ tab, screen, idx: _navStack.length - 1 }, '', '');
+}
+
+window.addEventListener('popstate', (e) => {
+  _isHandlingPop = true;
+  try {
+    // If we have history left in our stack, pop and navigate
+    if (_navStack.length > 1) {
+      _navStack.pop(); // remove current
+      const prev = _navStack[_navStack.length - 1];
+      if (prev) {
+        // Close any open sheet first
+        try { closeSheet(); } catch {}
+        state.navTab = prev.tab || 'home';
+        if (prev.screen) state.screen = prev.screen;
+        // Re-add a state so the user can swipe again
+        history.pushState({ tab: state.navTab, screen: state.screen, idx: _navStack.length - 1 }, '', '');
+        render();
+        return;
+      }
+    }
+    // No history left — re-add a state to keep the user inside the app
+    history.pushState({ tab: state.navTab, screen: state.screen, idx: 0 }, '', '');
+  } finally {
+    _isHandlingPop = false;
+  }
+});
+
+// Patched render-like helper: call this AFTER changing tab/screen and BEFORE render()
+function navigate(updates) {
+  if (updates.navTab !== undefined) state.navTab = updates.navTab;
+  if (updates.screen !== undefined) state.screen = updates.screen;
+  pushNavState(state.navTab, state.screen);
+  render();
+}
 
 function renderBoot() {
   return `<div class="screen active"><div class="splash">
@@ -2388,6 +2444,37 @@ function saveCoachHistory(entry) {
   localStorage.setItem(`mll2_coach_history_${state.user.id}`, JSON.stringify(hist.slice(0, 20)));
 }
 
+// ---- Cross-mode learning: save coach analyses keyed by crush for reply prompts ----
+function getCoachContextByCrush() {
+  if (!state.user?.id) return {};
+  try { return JSON.parse(localStorage.getItem(`mll2_coach_ctx_${state.user.id}`) || '{}'); } catch { return {}; }
+}
+function saveCoachContextForCrush(crushId, analysis) {
+  if (!state.user?.id || !crushId || !analysis) return;
+  const all = getCoachContextByCrush();
+  if (!all[crushId]) all[crushId] = [];
+  all[crushId].unshift({
+    interest: analysis.interest,
+    tone: analysis.tone,
+    interestReason: analysis.interestReason,
+    signals: analysis.signals,
+    tips: analysis.tips,
+    ts: Date.now(),
+  });
+  all[crushId] = all[crushId].slice(0, 5); // keep last 5 analyses per crush
+  try { localStorage.setItem(`mll2_coach_ctx_${state.user.id}`, JSON.stringify(all)); } catch {}
+}
+function getRecentCoachContext(crushId, maxItems = 2) {
+  if (!crushId) return null;
+  const all = getCoachContextByCrush();
+  const items = (all[crushId] || []).slice(0, maxItems);
+  if (!items.length) return null;
+  return items.map((c, i) => {
+    const when = formatRelTime(c.ts);
+    return `ניתוח ${i+1} (${when}): טון=${c.tone || '?'}, רמת עניין=${c.interest ?? '?'}%, סיבה: "${(c.interestReason || '').slice(0, 120)}"${c.tips?.length ? `, טיפ עיקרי: "${c.tips[0].slice(0, 100)}"` : ''}`;
+  }).join('\n');
+}
+
 // ---- Cloud sync (Wave 5) — best-effort, falls back to localStorage silently ----
 async function cloudSaveInteraction(crushId, interaction) {
   if (!state.user?.id || !crushId || !sb) return;
@@ -2459,6 +2546,16 @@ async function cloudSaveRating(key, rate) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,rating_key' });
   } catch (e) { console.warn('[cloud] save rating failed:', e?.message); }
+}
+
+async function cloudDeleteRating(key) {
+  if (!state.user?.id || !sb) return;
+  try {
+    await sb.from('reply_ratings')
+      .delete()
+      .eq('user_id', state.user.id)
+      .eq('rating_key', key);
+  } catch (e) { console.warn('[cloud] delete rating failed:', e?.message); }
 }
 
 async function cloudLoadAllRatings() {
@@ -3166,7 +3263,7 @@ function attachHandlers() {
   }
 
   // ---- top bar ----
-  $('#topSettings')?.addEventListener('click', () => { haptic(); state.navTab='settings'; render(); });
+  $('#topSettings')?.addEventListener('click', () => { haptic(); state.navTab='settings'; pushNavState('settings', state.screen); render(); });
   $('#streakChip')?.addEventListener('click', () => {
     haptic();
     const s = currentStreak();
@@ -3177,6 +3274,7 @@ function attachHandlers() {
   $$('.nav-item').forEach(el => el.addEventListener('click', () => {
     haptic();
     state.navTab = el.dataset.tab;
+    pushNavState(state.navTab, state.screen);
     render();
   }));
 
@@ -3509,17 +3607,29 @@ function renderResults(answers) {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   });
 
-  // Wire rating buttons
+  // Wire rating buttons (with toggle: clicking same again clears it)
   $$('.rate-btn', wrap).forEach(b => b.addEventListener('click', () => {
     haptic();
     const key = b.dataset.key;
     const rate = b.dataset.rate;
-    saveReplyRating(key, rate);
-    // Visual feedback: clear siblings, mark this one
+    const current = getReplyRating(key);
     const row = b.closest('.rating-row');
-    if (row) row.querySelectorAll('.rate-btn').forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    showToast(rate==='up' ? 'תודה! זה עוזר לי להשתפר 🙏' : 'הבנתי, לא חיבבת. אשתפר 💪', 'success');
+    // Find the index in the answers list and reply context for learning
+    const bubble = b.closest('.bubble');
+    const txt = bubble?.querySelector('.bubble-text')?.textContent || '';
+    const inputCtx = $('#msgInput')?.value?.trim() || $('#checkInput')?.value?.trim() || '';
+
+    if (current === rate) {
+      // Toggle off — clear rating
+      clearReplyRating(key);
+      if (row) row.querySelectorAll('.rate-btn').forEach(x => x.classList.remove('active'));
+      showToast('הדירוג בוטל', 'success');
+    } else {
+      saveReplyRating(key, rate, { mode: state.appMode, style: state.selectedStyle, situation: state.selectedSituation, input: inputCtx, output: txt });
+      if (row) row.querySelectorAll('.rate-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      showToast(rate==='up' ? 'תודה! זה יעזור לי להשתפר עבורך 🙏' : 'הבנתי, לא חיבבת. אלמד מזה 💪', 'success');
+    }
   }));
 
   $$('.copy-act', wrap).forEach(b => b.addEventListener('click', async () => {
@@ -3562,19 +3672,47 @@ function getReplyRatings() {
   catch { return {}; }
 }
 function getReplyRating(key) {
-  return getReplyRatings()[key] || null;
+  const r = getReplyRatings()[key];
+  // Support both old format (string) and new format (object with rate/context)
+  return r ? (typeof r === 'string' ? r : r.rate) : null;
 }
-function saveReplyRating(key, rate) {
+function saveReplyRating(key, rate, context) {
   const all = getReplyRatings();
-  all[key] = rate;
+  // Store the rating WITH context so we can learn from it later
+  all[key] = context ? { rate, ...context, ts: Date.now() } : rate;
   // keep size bounded (last 300 entries)
   const keys = Object.keys(all);
   if (keys.length > 300) {
     keys.slice(0, keys.length - 300).forEach(k => delete all[k]);
   }
   try { localStorage.setItem('replyRatings', JSON.stringify(all)); } catch {}
-  // fire-and-forget cloud sync
   cloudSaveRating(key, rate);
+}
+function clearReplyRating(key) {
+  const all = getReplyRatings();
+  delete all[key];
+  try { localStorage.setItem('replyRatings', JSON.stringify(all)); } catch {}
+  cloudDeleteRating?.(key);
+}
+
+// ---- Learning loop: fetch user's recent rated examples for the prompt ----
+// Returns { good: [...examples], bad: [...examples] } for current (mode, style)
+function getLearnedExamples(mode, style, maxPer = 3) {
+  const all = getReplyRatings();
+  const good = [], bad = [];
+  // Iterate in reverse order (newest first based on key insertion)
+  const entries = Object.entries(all).reverse();
+  for (const [key, val] of entries) {
+    if (typeof val !== 'object') continue; // skip old-format ratings without context
+    if (val.mode !== mode) continue;
+    if (val.style && val.style !== style) continue;
+    const ex = { input: val.input || '', output: val.output || '' };
+    if (!ex.output) continue;
+    if (val.rate === 'up' && good.length < maxPer) good.push(ex);
+    else if (val.rate === 'down' && bad.length < maxPer) bad.push(ex);
+    if (good.length >= maxPer && bad.length >= maxPer) break;
+  }
+  return { good, bad };
 }
 
 // ---- Check-message result rendering ----
@@ -3773,6 +3911,11 @@ async function handleCoachAnalyze() {
       tone: result.tone,
       result
     });
+    // Cross-mode learning: save analysis to per-crush context so future
+    // reply generations benefit from what we learned about this person.
+    if (state.selectedCrushId) {
+      saveCoachContextForCrush(state.selectedCrushId, result);
+    }
     bumpStreak();
     haptic(15);
     render();
@@ -4561,6 +4704,7 @@ function afterAuth() {
   else if (!hasProfile) state.screen = 'onboardProfile';
   else if (!paywallShown && getTier() === 'free') state.screen = 'paywall';
   else state.screen = 'main';
+  pushNavState(state.navTab || 'home', state.screen);
   render();
 }
 
