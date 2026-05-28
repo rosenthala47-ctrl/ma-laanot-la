@@ -4127,11 +4127,16 @@ function renderAdminBody(data, search) {
           <div style="font-size:11.5px;color:var(--text-3);">בדוק כמה נשאר בקרדיט שלך ומתי לטעון מחדש</div>
         </div>
       </div>
-      <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener" class="btn btn-secondary" style="display:flex;text-decoration:none;font-size:13px;padding:8px;">
-        💳 פתח Anthropic Billing →
-      </a>
+      <button class="btn btn-secondary" id="openAnthropicBilling" style="display:flex;justify-content:center;align-items:center;font-size:13px;padding:8px;width:100%;">
+        💳 פתח Anthropic Console →
+      </button>
       <div style="font-size:11.5px;color:var(--text-3);margin-top:8px;line-height:1.5;">
-        💡 <b>טיפ:</b> הגדר שם <b>Auto-recharge</b> (טעינה אוטומטית) ו-<b>Email alerts</b> ב-75% — ככה לא תיתפס "ריק" באמצע יום עמוס.
+        ⚠️ <b>חשוב:</b> פתח <u>בדפדפן Chrome רגיל</u>, לא מתוך WhatsApp/אפליקציה. אם פתחת מקישור — לחץ "פתח בדפדפן" 🌐<br/>
+        💡 <b>טיפ:</b> הגדר שם <b>Auto-recharge</b> ו-<b>Email alerts</b> ב-75%.
+      </div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:6px;text-align:center;">
+        URL: <code style="background:var(--surface);padding:2px 6px;border-radius:4px;">console.anthropic.com</code>
+        <button class="copy-url-btn" id="copyAnthropicUrl" style="background:var(--surface-2);border:1px solid var(--stroke);border-radius:6px;padding:2px 8px;margin-right:6px;font-size:11px;cursor:pointer;color:var(--text);">העתק</button>
       </div>
     </div>
 
@@ -4163,6 +4168,28 @@ function renderAdminBody(data, search) {
 }
 
 function attachAdminHandlers() {
+  // Anthropic billing — open in real browser tab (not in-app webview)
+  $('#openAnthropicBilling')?.addEventListener('click', () => {
+    haptic();
+    const url = 'https://console.anthropic.com/';
+    // Use window.open with _blank + noopener — most browsers will open a real new tab
+    const newWin = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!newWin) {
+      // Popup blocked or in-app browser refused — show fallback
+      showToast('הדפדפן חסם את הקישור. העתק את ה-URL ופתח ידנית ב-Chrome', 'error');
+    }
+  });
+  $('#copyAnthropicUrl')?.addEventListener('click', async () => {
+    haptic();
+    try {
+      await navigator.clipboard.writeText('https://console.anthropic.com/');
+      const b = $('#copyAnthropicUrl');
+      const orig = b.textContent;
+      b.textContent = '✓ הועתק!';
+      setTimeout(() => { b.textContent = orig; }, 1500);
+    } catch { showToast('לא הצלחתי להעתיק', 'error'); }
+  });
+
   let timer;
   $('#adminSearchInput')?.addEventListener('input', (e) => {
     clearTimeout(timer);
