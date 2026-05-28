@@ -1715,6 +1715,47 @@ const state = {
 // ---------- helpers ----------
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => root.querySelectorAll(s);
+
+// ---- Image compression: resize big screenshots so the upload doesn't fail ----
+async function compressImage(file, maxDim = 1600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Read failed'));
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.onload = () => {
+        try {
+          let { width, height } = img;
+          // Scale down if larger than maxDim on either side
+          if (width > maxDim || height > maxDim) {
+            const scale = Math.min(maxDim / width, maxDim / height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          // White background for transparency (JPEG doesn't support alpha)
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          // Always export JPEG (smaller than PNG, fine for screenshots)
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          const base64 = dataUrl.split(',')[1];
+          const sizeKb = Math.round((base64.length * 3 / 4) / 1024);
+          console.log('[image] compressed to', width + 'x' + height, sizeKb + 'KB');
+          resolve({ base64, type: 'image/jpeg', sizeKb, width, height });
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 const esc = (s) => { const d=document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
 const haptic = (ms=10) => { try { if (localStorage.getItem('mll2_haptic') !== '0') navigator.vibrate?.(ms); } catch {} };
 
@@ -1899,15 +1940,34 @@ async function generateAnswers() {
     payload = { ...base, mode:'text', text };
   }
   console.log('[reply-source] requesting from Claude backend, mode=' + payload.mode + ', situation=' + payload.situation + ', style=' + payload.style);
-  const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
-    body: JSON.stringify(payload)
-  });
+  // Compute payload size for debugging
+  const payloadStr = JSON.stringify(payload);
+  console.log('[reply-source] payload size:', Math.round(payloadStr.length/1024), 'KB');
+  // 60-second timeout (image analyses can take 20-40 sec)
+  const ctrl = new AbortController();
+  const tt = setTimeout(() => ctrl.abort(), 60000);
+  let r;
+  try {
+    r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+      body: payloadStr,
+      signal: ctrl.signal,
+    });
+    clearTimeout(tt);
+  } catch (e) {
+    clearTimeout(tt);
+    if (e.name === 'AbortError') throw new Error('הבקשה בוטלה (60 שניות). נסה תמונה קטנה יותר.');
+    if (e.message?.includes('Failed to fetch') || e.message?.includes('failed to fetch')) {
+      throw new Error('בעיית חיבור. בדוק אינטרנט, או שהתמונה גדולה מדי. נסה שוב.');
+    }
+    throw e;
+  }
   if (!r.ok) {
     let m = `שגיאה (${r.status})`;
     try { const j = await r.json(); if (j.error) m += `: ${j.error}`; } catch {}
     console.error('[reply-source] backend error:', m);
+    if (r.status === 413) m = 'התמונה גדולה מדי לשרת. נסה תמונה קטנה יותר.';
     throw new Error(m);
   }
   const d = await r.json();
@@ -3435,19 +3495,21 @@ function attachHandlers() {
     state.inputMode = 'image';
     $('#fileIn').click();
   });
-  $('#fileIn')?.addEventListener('change', (e) => {
+  $('#fileIn')?.addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;
     if (!f.type.startsWith('image/')) { showToast('קובץ תמונה בלבד', 'error'); return; }
-    if (f.size > 5*1024*1024) { showToast('עד 5MB', 'error'); return; }
-    const r = new FileReader();
-    r.onload = (ev) => {
-      const url = ev.target.result;
-      state.imageBase64 = url.split(',')[1];
-      state.imageMediaType = f.type;
+    if (f.size > 20*1024*1024) { showToast('עד 20MB', 'error'); return; }
+    try {
+      showToast('דוחס תמונה...', 'success');
+      const compressed = await compressImage(f, 1600, 0.85);
+      state.imageBase64 = compressed.base64;
+      state.imageMediaType = compressed.type;
       render();
-    };
-    r.readAsDataURL(f);
+    } catch (err) {
+      console.error('compress error:', err);
+      showToast('שגיאה בהכנת התמונה. נסה תמונה אחרת.', 'error');
+    }
   });
   $('#rmImg')?.addEventListener('click', () => { haptic(); state.imageBase64=null; state.imageMediaType=null; state.inputMode='text'; render(); });
   $('#backToText')?.addEventListener('click', () => { haptic(); state.inputMode='text'; render(); });
@@ -4771,18 +4833,21 @@ document.addEventListener('paste', (e) => {
     if (it.type.startsWith('image/')) {
       const f = it.getAsFile();
       if (f) {
-        const r = new FileReader();
-        r.onload = (ev) => {
-          const url = ev.target.result;
-          state.imageBase64 = url.split(',')[1];
-          state.imageMediaType = f.type;
-          state.inputMode = 'image';
-          render();
-          showToast('תמונה צורפה ✓', 'success');
-          haptic();
-        };
-        r.readAsDataURL(f);
         e.preventDefault();
+        (async () => {
+          try {
+            const compressed = await compressImage(f, 1600, 0.85);
+            state.imageBase64 = compressed.base64;
+            state.imageMediaType = compressed.type;
+            state.inputMode = 'image';
+            render();
+            showToast('תמונה צורפה ✓', 'success');
+            haptic();
+          } catch (err) {
+            console.error('paste compress error:', err);
+            showToast('שגיאה בהכנת התמונה', 'error');
+          }
+        })();
         break;
       }
     }
