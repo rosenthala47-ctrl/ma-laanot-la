@@ -4696,6 +4696,19 @@ async function init() {
   // fires popstate (not browser exit). This adds a history entry on top
   // of the page load entry, so back navigation triggers our handler.
   try { primeHistoryGuard(); } catch (e) { console.warn('prime history failed:', e); }
+
+  // Visible build indicator — disappears after 5s.
+  // If user sees "navfix" briefly, they know the new code is loaded.
+  try {
+    const tag = document.createElement('div');
+    tag.textContent = 'navfix';
+    tag.style.cssText = 'position:fixed;top:6px;left:6px;background:rgba(255,46,147,0.85);color:white;padding:3px 8px;font-size:10px;font-weight:700;border-radius:8px;z-index:99999;pointer-events:none;font-family:monospace;letter-spacing:0.5px;';
+    document.body.appendChild(tag);
+    setTimeout(() => tag.style.transition = 'opacity 0.5s', 4500);
+    setTimeout(() => tag.style.opacity = '0', 4600);
+    setTimeout(() => tag.remove(), 5200);
+  } catch {}
+
   render(); // boot screen
 
   const { data: { session } } = await sb.auth.getSession();

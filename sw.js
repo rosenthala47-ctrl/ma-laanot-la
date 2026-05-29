@@ -1,13 +1,10 @@
 // ============================================================
 // Service Worker for "מה לענות לה?" PWA
-// Minimal: just enables installability + a tiny offline shell.
-// Chat replies need network anyway, so we don't cache API calls.
+// Network-first, NO HTML caching, aggressive update on activate.
 // ============================================================
 
-const CACHE_NAME = 'mll-v1';
+const CACHE_NAME = 'mll-v3-' + 'navfix';
 const SHELL_ASSETS = [
-  './',
-  './index.html',
   './icon.svg',
   './favicon.svg',
   './manifest.json',
@@ -17,7 +14,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
       .then(() => self.skipWaiting())
-      .catch(() => {})
+      .catch(() => self.skipWaiting())
   );
 });
 
@@ -29,28 +26,35 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network-first for HTML (so users always get latest app), cache fallback
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
 
-  // Don't cache Supabase / API calls — always go to network
+  // Don't intercept Supabase / Anthropic — always network
   if (url.hostname.includes('supabase.co') || url.hostname.includes('anthropic.com')) {
-    return; // default browser behavior
+    return;
   }
 
-  // For our shell files: network-first, fallback to cache
+  // HTML — ALWAYS go to network, NEVER cache. Stale HTML hides our latest fixes.
+  if (req.destination === 'document' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' }).catch(() => caches.match('./icon.svg').then(() => new Response('Offline', { status: 503 })))
+    );
+    return;
+  }
+
+  // Other same-origin assets (svg, json, etc): cache-first with background refresh
   if (url.origin === self.location.origin) {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
+      caches.match(req).then((cached) => {
+        const fetchPromise = fetch(req).then((res) => {
+          caches.open(CACHE_NAME).then((c) => c.put(req, res.clone())).catch(() => {});
           return res;
-        })
-        .catch(() => caches.match(req).then((m) => m || caches.match('./index.html')))
+        }).catch(() => cached);
+        return cached || fetchPromise;
+      })
     );
   }
 });
