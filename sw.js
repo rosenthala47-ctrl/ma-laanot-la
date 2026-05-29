@@ -3,7 +3,7 @@
 // Network-first, NO HTML caching, aggressive update on activate.
 // ============================================================
 
-const CACHE_NAME = 'mll-v3-' + 'navfix';
+const CACHE_NAME = 'mll-v4-' + 'navfix2';
 const SHELL_ASSETS = [
   './icon.svg',
   './favicon.svg',

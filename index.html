@@ -2057,10 +2057,10 @@ window.addEventListener('popstate', (e) => {
 
   _isHandlingPop = true;
   try {
-    // PRIORITY 1: If a sheet is open (any sheet — profile, admin, etc.),
+    // PRIORITY 1: If a sheet is open AND visible (not mid-close animation),
     // close it first instead of navigating.
     const sheetBg = document.getElementById('sheetBg');
-    if (sheetBg) {
+    if (sheetBg && sheetBg.classList.contains('open')) {
       console.log('[nav] sheet open → close it');
       try { closeSheet(); } catch {}
       return;
@@ -2105,6 +2105,30 @@ function primeHistoryGuard() {
   history.pushState({ guard: true, init: true, tab: state.navTab, screen: state.screen }, '', '');
   console.log('[nav] primed initial history guard');
 }
+
+// 🔁 Re-prime guard whenever the page becomes visible again.
+// This handles bfcache restoration (browser back/forward) AND tab switching.
+// Without this, the second time you back-swipe after returning to the app,
+// the guard is gone and the browser exits without firing popstate.
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) {
+    console.log('[nav] page restored from bfcache → re-prime guard');
+    _allowExitOnNextPop = false; // reset flag in case it was left true
+    try { primeHistoryGuard(); } catch {}
+  }
+});
+
+// Also re-prime on visibility change (when user returns to tab/app)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // Only re-prime if there's no guard on top (avoid duplicate stacking)
+    const cur = history.state;
+    if (!cur || !cur.guard) {
+      console.log('[nav] visibility=visible + no guard → prime');
+      try { primeHistoryGuard(); } catch {}
+    }
+  }
+});
 
 function showExitConfirmDialog() {
   // Don't open the same dialog twice
@@ -4701,7 +4725,7 @@ async function init() {
   // If user sees "navfix" briefly, they know the new code is loaded.
   try {
     const tag = document.createElement('div');
-    tag.textContent = 'navfix';
+    tag.textContent = 'navfix2';
     tag.style.cssText = 'position:fixed;top:6px;left:6px;background:rgba(255,46,147,0.85);color:white;padding:3px 8px;font-size:10px;font-weight:700;border-radius:8px;z-index:99999;pointer-events:none;font-family:monospace;letter-spacing:0.5px;';
     document.body.appendChild(tag);
     setTimeout(() => tag.style.transition = 'opacity 0.5s', 4500);
