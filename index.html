@@ -2041,11 +2041,19 @@ function pushNavState(tab, screen) {
 }
 
 window.addEventListener('popstate', (e) => {
+  console.log('[nav] popstate — stack:', _navStack.length, 'tab:', state.navTab, 'allowExit:', _allowExitOnNextPop);
+
   // If user confirmed exit, let this pop pass through
   if (_allowExitOnNextPop) {
     _allowExitOnNextPop = false;
+    console.log('[nav] allowing exit');
     return;
   }
+
+  // 🚨 CRITICAL: push state IMMEDIATELY (synchronously, before anything else)
+  // This is the guard that prevents the browser from actually exiting.
+  // Even if everything below fails, the user stays in the app.
+  history.pushState({ guard: true, ts: Date.now(), tab: state.navTab, screen: state.screen }, '', '');
 
   _isHandlingPop = true;
   try {
@@ -2053,20 +2061,19 @@ window.addEventListener('popstate', (e) => {
     // close it first instead of navigating.
     const sheetBg = document.getElementById('sheetBg');
     if (sheetBg) {
+      console.log('[nav] sheet open → close it');
       try { closeSheet(); } catch {}
-      // Re-push state so we don't accidentally exit
-      history.pushState({ tab: state.navTab, screen: state.screen, type: 'guard' }, '', '');
       return;
     }
 
     // PRIORITY 2: If we have history left in our stack, pop and navigate
     if (_navStack.length > 1) {
-      _navStack.pop(); // remove current
+      _navStack.pop();
       const prev = _navStack[_navStack.length - 1];
       if (prev) {
+        console.log('[nav] pop → previous tab:', prev.tab);
         state.navTab = prev.tab || 'home';
         if (prev.screen) state.screen = prev.screen;
-        history.pushState({ tab: state.navTab, screen: state.screen, idx: _navStack.length - 1 }, '', '');
         render();
         return;
       }
@@ -2074,21 +2081,30 @@ window.addEventListener('popstate', (e) => {
 
     // PRIORITY 3: Stack empty, but we're NOT at home → go to home first
     if (state.navTab !== 'home' && state.screen === 'main') {
+      console.log('[nav] no history + not home → go home');
       state.navTab = 'home';
       _navStack.length = 0;
       _navStack.push({ tab: 'home', screen: state.screen });
-      history.pushState({ tab: 'home', screen: state.screen, idx: 0 }, '', '');
       render();
       return;
     }
 
     // PRIORITY 4: We're at home with empty stack → show exit confirmation
+    console.log('[nav] at home + no history → show exit dialog');
     showExitConfirmDialog();
-    history.pushState({ tab: state.navTab, screen: state.screen, type: 'exitGuard' }, '', '');
+  } catch (err) {
+    console.error('[nav] popstate error:', err);
   } finally {
     _isHandlingPop = false;
   }
 });
+
+// Ensure there's always a history entry to pop back to (so popstate fires
+// instead of the browser exiting on the very first back swipe).
+function primeHistoryGuard() {
+  history.pushState({ guard: true, init: true, tab: state.navTab, screen: state.screen }, '', '');
+  console.log('[nav] primed initial history guard');
+}
 
 function showExitConfirmDialog() {
   // Don't open the same dialog twice
@@ -4676,6 +4692,10 @@ async function handleStripeReturn() {
 
 async function init() {
   captureReferralFromUrl(); // ?ref=USERID → save to localStorage for future credit
+  // 🔒 PRIME HISTORY GUARD — must run early so the very first back-swipe
+  // fires popstate (not browser exit). This adds a history entry on top
+  // of the page load entry, so back navigation triggers our handler.
+  try { primeHistoryGuard(); } catch (e) { console.warn('prime history failed:', e); }
   render(); // boot screen
 
   const { data: { session } } = await sb.auth.getSession();
