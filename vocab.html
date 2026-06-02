@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#0f0c1a"/>
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<title>VocabBoost v3 – English ↔ Hebrew</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ── TOKENS ── */
+:root{
+  --bg:#0f0c1a; --bg2:#16112a; --bg3:#1e1833;
+  --surface:rgba(255,255,255,.05); --surface2:rgba(255,255,255,.09); --surface3:rgba(255,255,255,.13);
+  --stroke:rgba(255,255,255,.08); --stroke2:rgba(255,255,255,.16);
+  --blue:#4f9eff; --indigo:#7c6ff7; --purple:#b06aff; --pink:#ff5db0;
+  --green:#3dffa0; --yellow:#ffd93d; --orange:#ff9f43; --red:#ff5252;
+  --cyan:#00e5ff;
+  --text:#f4f0ff; --text2:#a99dcc; --text3:#6b5e8e; --text4:#3d3260;
+  --g1:linear-gradient(135deg,#4f9eff,#b06aff); --g2:linear-gradient(135deg,#7c6ff7,#ff5db0);
+  --g3:linear-gradient(135deg,#3dffa0,#4f9eff); --g4:linear-gradient(135deg,#ffd93d,#ff9f43);
+  --shadow:0 12px 40px rgba(0,0,0,.5); --glow:0 0 30px rgba(124,111,247,.35);
+  --r:16px; --r2:12px; --r3:8px;
+  --ease:cubic-bezier(.4,0,.2,1); --spring:cubic-bezier(.34,1.56,.64,1);
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;overflow:hidden;overscroll-behavior:none}
+button,input,textarea,select{font-family:inherit;color:inherit}
+
+/* ── AMBIENT ── */
+.ambient{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.ambient::before,.ambient::after{content:'';position:absolute;border-radius:50%;filter:blur(100px);opacity:.25}
+.ambient::before{width:600px;height:600px;background:var(--indigo);top:-200px;right:-200px;animation:fa 20s ease-in-out infinite}
+.ambient::after{width:500px;height:500px;background:var(--pink);bottom:-200px;left:-200px;animation:fb 25s ease-in-out infinite}
+@keyframes fa{0%,100%{transform:translate(0,0)}50%{transform:translate(-80px,100px)}}
+@keyframes fb{0%,100%{transform:translate(0,0)}50%{transform:translate(80px,-80px)}}
+
+/* ── SHELL ── */
+#app{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;max-width:540px;margin:0 auto;padding-top:var(--safe-top)}
+.screen{position:absolute;inset:0;padding-top:calc(var(--safe-top) + 56px);padding-bottom:calc(var(--safe-bottom) + 16px);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .3s var(--ease),transform .35s var(--ease);transform:translateX(30px)}
+.screen.active{opacity:1;pointer-events:auto;transform:translateX(0);z-index:2}
+.screen.exit{transform:translateX(-30px);opacity:0}
+.scroll{flex:1;overflow-y:auto;padding:0 16px 16px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── TOPBAR ── */
+.topbar{position:absolute;top:var(--safe-top);left:0;right:0;z-index:10;display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(15,12,26,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--stroke)}
+.topbar-title{font-size:17px;font-weight:700;flex:1;letter-spacing:-.3px}
+.back-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .2s}
+.back-btn:hover{background:var(--surface3)}
+
+/* ── TYPOGRAPHY ── */
+h1{font-size:28px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+h2{font-size:21px;font-weight:700;letter-spacing:-.3px}
+h3{font-size:16px;font-weight:600}
+.label{font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text2)}
+.hebrew{font-family:'Heebo',sans-serif;direction:rtl}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--r);border:none;font-size:15px;font-weight:600;cursor:pointer;transition:transform .15s var(--spring),filter .2s;-webkit-user-select:none;user-select:none}
+.btn:active{transform:scale(.95)}
+.btn-primary{background:var(--g1);color:#fff;box-shadow:var(--glow)}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-secondary{background:var(--surface2);color:var(--text)}
+.btn-secondary:hover{background:var(--surface3)}
+.btn-danger{background:rgba(255,82,82,.15);color:var(--red);border:1px solid rgba(255,82,82,.3)}
+.btn-full{width:100%;padding:16px}
+.btn-sm{padding:9px 16px;font-size:13px;border-radius:var(--r2)}
+.btn-icon{width:44px;height:44px;padding:0;border-radius:50%}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;transition:background .2s}
+.card-hover:hover{background:var(--surface2)}
+
+/* ── TAG / BADGE ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:100px;font-size:12px;font-weight:600}
+.badge-green{background:rgba(61,255,160,.15);color:var(--green)}
+.badge-red{background:rgba(255,82,82,.15);color:var(--red)}
+.badge-blue{background:rgba(79,158,255,.15);color:var(--blue)}
+.badge-yellow{background:rgba(255,217,61,.15);color:var(--yellow)}
+
+/* ── INPUT ── */
+.input-wrap{display:flex;flex-direction:column;gap:6px}
+.input-wrap label{font-size:13px;font-weight:500;color:var(--text2)}
+input[type=text],textarea{background:var(--surface2);border:1px solid var(--stroke2);border-radius:var(--r2);padding:12px 14px;font-size:15px;color:var(--text);transition:border-color .2s,box-shadow .2s;resize:none}
+input[type=text]:focus,textarea:focus{outline:none;border-color:var(--indigo);box-shadow:0 0 0 3px rgba(124,111,247,.2)}
+textarea{min-height:160px;line-height:1.7}
+
+/* ── TOGGLE ── */
+.toggle-group{display:flex;background:var(--surface2);border-radius:var(--r2);padding:4px;gap:4px}
+.toggle-btn{flex:1;padding:9px;border:none;border-radius:var(--r3);font-size:13px;font-weight:600;background:transparent;color:var(--text2);cursor:pointer;transition:all .2s}
+.toggle-btn.active{background:var(--g1);color:#fff;box-shadow:var(--glow)}
+
+/* ── PROGRESS BAR ── */
+.prog-bar{height:6px;background:var(--surface3);border-radius:100px;overflow:hidden}
+.prog-fill{height:100%;background:var(--g1);border-radius:100px;transition:width .4s var(--ease)}
+
+/* ── STAR RATING ── */
+.stars{display:flex;gap:4px}
+.star{font-size:20px;cursor:pointer;transition:transform .15s var(--spring)}
+.star:hover{transform:scale(1.2)}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: HOME
+───────────────────────────────────────────────── */
+#s-home{background:transparent}
+#s-home .scroll{display:flex;flex-direction:column;gap:20px;padding-top:24px}
+.home-hero{text-align:center;padding:24px 0 8px}
+.home-hero .emoji{font-size:56px;line-height:1;display:block;margin-bottom:12px;animation:bounce 2s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.home-hero h1{background:var(--g1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+.home-hero p{color:var(--text2);font-size:15px;line-height:1.6}
+
+.home-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.stat-box{background:var(--surface);border:1px solid var(--stroke);border-radius:var(--r);padding:14px 10px;text-align:center}
+.stat-box .num{font-size:24px;font-weight:800;background:var(--g1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-box .lbl{font-size:11px;color:var(--text2);margin-top:2px}
+
+.home-menu{display:flex;flex-direction:column;gap:10px}
+.menu-item{display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--stroke);border-radius:var(--r);cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none}
+.menu-item:hover{background:var(--surface2);transform:translateX(4px)}
+.menu-item:active{transform:scale(.98)}
+.menu-icon{width:44px;height:44px;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.menu-item .info h3{font-size:15px;margin-bottom:2px}
+.menu-item .info p{font-size:12px;color:var(--text2)}
+.menu-item .arrow{margin-left:auto;color:var(--text3);font-size:18px}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: ADD WORDS
+───────────────────────────────────────────────── */
+#s-add .scroll{display:flex;flex-direction:column;gap:20px;padding-top:12px}
+.dir-hint{font-size:13px;color:var(--text2);line-height:1.6;padding:10px 12px;background:rgba(79,158,255,.08);border:1px solid rgba(79,158,255,.2);border-radius:var(--r2)}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: WORD LIST
+───────────────────────────────────────────────── */
+#s-words .scroll{padding-top:12px}
+.word-list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.word-list-header .count{font-size:13px;color:var(--text2)}
+.word-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--stroke);border-radius:var(--r2);margin-bottom:8px;transition:background .2s}
+.word-item:hover{background:var(--surface2)}
+.word-item-num{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0}
+.word-item-content{flex:1;min-width:0}
+.word-item-en{font-size:15px;font-weight:600;color:var(--text)}
+.word-item-he{font-size:14px;color:var(--text2);font-family:'Heebo',sans-serif;direction:rtl;margin-top:2px}
+.word-item-actions{display:flex;gap:6px;flex-shrink:0}
+.word-item-del{width:30px;height:30px;border-radius:50%;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:color .2s,background .2s}
+.word-item-del:hover{color:var(--red);background:rgba(255,82,82,.1)}
+.mastery-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: CHOOSE ACTIVITY
+───────────────────────────────────────────────── */
+#s-activities .scroll{display:flex;flex-direction:column;gap:12px;padding-top:12px}
+.act-card{display:flex;align-items:center;gap:14px;padding:18px;border-radius:var(--r);cursor:pointer;transition:all .2s;border:1px solid transparent;-webkit-user-select:none;user-select:none;position:relative;overflow:hidden}
+.act-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s}
+.act-card:hover::before{opacity:1}
+.act-card:active{transform:scale(.98)}
+.act-card .act-icon{font-size:30px;flex-shrink:0}
+.act-card .act-info h3{font-size:16px;margin-bottom:3px}
+.act-card .act-info p{font-size:13px;opacity:.75}
+.act-card .act-arrow{margin-left:auto;font-size:20px;flex-shrink:0}
+
+.act-flash{background:linear-gradient(135deg,rgba(79,158,255,.15),rgba(79,158,255,.05));border-color:rgba(79,158,255,.25);color:var(--blue)}
+.act-flash::before{background:linear-gradient(135deg,rgba(79,158,255,.1),rgba(79,158,255,.05))}
+.act-quiz{background:linear-gradient(135deg,rgba(176,106,255,.15),rgba(176,106,255,.05));border-color:rgba(176,106,255,.25);color:var(--purple)}
+.act-match{background:linear-gradient(135deg,rgba(61,255,160,.15),rgba(61,255,160,.05));border-color:rgba(61,255,160,.25);color:var(--green)}
+.act-memory{background:linear-gradient(135deg,rgba(255,217,61,.15),rgba(255,217,61,.05));border-color:rgba(255,217,61,.25);color:var(--yellow)}
+.act-spell{background:linear-gradient(135deg,rgba(255,159,67,.15),rgba(255,159,67,.05));border-color:rgba(255,159,67,.25);color:var(--orange)}
+.act-progress{background:linear-gradient(135deg,rgba(255,93,176,.15),rgba(255,93,176,.05));border-color:rgba(255,93,176,.25);color:var(--pink)}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: FLASHCARDS
+───────────────────────────────────────────────── */
+#s-flash{display:flex;flex-direction:column}
+#s-flash .scroll{display:flex;flex-direction:column;align-items:center;gap:20px;padding-top:12px}
+.flash-counter{font-size:14px;color:var(--text2);font-weight:500}
+.flash-prog{width:100%;max-width:400px}
+
+.flashcard-scene{width:100%;max-width:360px;height:220px;perspective:1000px;cursor:pointer;-webkit-user-select:none;user-select:none}
+.flashcard-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .5s var(--ease)}
+.flashcard-inner.flipped{transform:rotateY(180deg)}
+.flashcard-face{position:absolute;inset:0;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flashcard-front{background:var(--g1);box-shadow:var(--shadow),var(--glow)}
+.flashcard-back{background:var(--g2);box-shadow:var(--shadow);transform:rotateY(180deg)}
+.flashcard-face .small-label{font-size:12px;font-weight:600;letter-spacing:.8px;opacity:.7;text-transform:uppercase}
+.flashcard-face .word{font-size:32px;font-weight:800;text-align:center;line-height:1.2}
+.flashcard-face .translation{font-size:22px;font-family:'Heebo',sans-serif;direction:rtl;text-align:center}
+.flashcard-hint{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px}
+
+.flash-actions{display:flex;gap:12px;width:100%;max-width:360px}
+.flash-actions .btn{flex:1;gap:6px}
+.flash-know{background:rgba(61,255,160,.15);color:var(--green);border:1px solid rgba(61,255,160,.3)}
+.flash-know:hover{background:rgba(61,255,160,.25)}
+.flash-skip{background:rgba(255,82,82,.15);color:var(--red);border:1px solid rgba(255,82,82,.3)}
+.flash-skip:hover{background:rgba(255,82,82,.25)}
+.flash-all-done{text-align:center;padding:20px}
+.flash-all-done .big-emoji{font-size:60px;display:block;margin-bottom:12px}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: QUIZ
+───────────────────────────────────────────────── */
+#s-quiz .scroll{display:flex;flex-direction:column;gap:20px;padding-top:12px}
+.quiz-question-box{background:var(--surface);border:1px solid var(--stroke);border-radius:var(--r);padding:24px;text-align:center}
+.quiz-question-label{font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:500}
+.quiz-question-word{font-size:28px;font-weight:800;letter-spacing:-.5px}
+.quiz-question-word.hebrew{font-family:'Heebo',sans-serif;direction:rtl}
+.quiz-options{display:flex;flex-direction:column;gap:10px}
+.quiz-opt{padding:15px 18px;background:var(--surface);border:2px solid var(--stroke2);border-radius:var(--r2);font-size:15px;font-weight:500;cursor:pointer;transition:all .2s;text-align:left;-webkit-user-select:none;user-select:none}
+.quiz-opt.hebrew{font-family:'Heebo',sans-serif;direction:rtl;text-align:right}
+.quiz-opt:hover:not(.disabled){background:var(--surface2);border-color:var(--indigo);transform:translateX(3px)}
+.quiz-opt.correct{background:rgba(61,255,160,.15);border-color:var(--green);color:var(--green)}
+.quiz-opt.wrong{background:rgba(255,82,82,.15);border-color:var(--red);color:var(--red)}
+.quiz-opt.disabled{cursor:default;pointer-events:none}
+.quiz-feedback{text-align:center;font-size:15px;font-weight:600;padding:10px;border-radius:var(--r2);animation:fadeIn .3s}
+.quiz-feedback.good{color:var(--green);background:rgba(61,255,160,.1)}
+.quiz-feedback.bad{color:var(--red);background:rgba(255,82,82,.1)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: MATCHING
+───────────────────────────────────────────────── */
+#s-match .scroll{padding-top:12px}
+.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.match-col{display:flex;flex-direction:column;gap:8px}
+.match-col-label{font-size:11px;font-weight:600;letter-spacing:.8px;color:var(--text2);text-align:center;padding:6px 0;text-transform:uppercase}
+.match-card{padding:14px 10px;background:var(--surface);border:2px solid var(--stroke2);border-radius:var(--r2);text-align:center;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;min-height:54px;display:flex;align-items:center;justify-content:center;-webkit-user-select:none;user-select:none}
+.match-card:hover:not(.disabled){background:var(--surface2)}
+.match-card.selected{border-color:var(--indigo);background:rgba(124,111,247,.2);transform:scale(1.03)}
+.match-card.matched{border-color:var(--green);background:rgba(61,255,160,.12);color:var(--green);cursor:default}
+.match-card.wrong-flash{border-color:var(--red);background:rgba(255,82,82,.15);animation:wrongShake .4s}
+@keyframes wrongShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.match-card.disabled{opacity:.5;cursor:default}
+.match-card.hebrew{font-family:'Heebo',sans-serif;font-size:15px}
+.match-score{text-align:center;font-size:14px;color:var(--text2)}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: MEMORY GAME
+───────────────────────────────────────────────── */
+#s-memory .scroll{padding-top:12px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.mem-stats{display:flex;gap:16px;font-size:13px;color:var(--text2)}
+.mem-stats span{font-weight:700;color:var(--text)}
+.memory-grid{display:grid;gap:8px;width:100%;max-width:420px}
+.mem-card-wrap{aspect-ratio:1;perspective:800px}
+.mem-card{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .45s var(--ease);cursor:pointer}
+.mem-card.flipped{transform:rotateY(180deg)}
+.mem-card.matched{transform:rotateY(180deg)}
+.mem-face{position:absolute;inset:0;border-radius:12px;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;font-size:13px;font-weight:600;text-align:center;padding:6px;transition:background .2s}
+.mem-front{background:var(--surface2);border:2px solid var(--stroke2)}
+.mem-front .back-icon{font-size:22px}
+.mem-back{transform:rotateY(180deg);border:2px solid var(--indigo)}
+.mem-back.en{background:linear-gradient(135deg,rgba(79,158,255,.2),rgba(79,158,255,.08));color:var(--blue)}
+.mem-back.he{background:linear-gradient(135deg,rgba(176,106,255,.2),rgba(176,106,255,.08));color:var(--purple);font-family:'Heebo',sans-serif;font-size:14px}
+.mem-card.matched .mem-face{border-color:var(--green)}
+.mem-card.matched .mem-back{background:linear-gradient(135deg,rgba(61,255,160,.2),rgba(61,255,160,.08))}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: SPELLING
+───────────────────────────────────────────────── */
+#s-spell .scroll{display:flex;flex-direction:column;align-items:center;gap:22px;padding-top:16px}
+.spell-prompt-box{width:100%;background:var(--surface);border:1px solid var(--stroke);border-radius:var(--r);padding:24px;text-align:center}
+.spell-prompt-label{font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:600;letter-spacing:.6px;text-transform:uppercase}
+.spell-prompt-word{font-size:30px;font-weight:800;font-family:'Heebo',sans-serif;direction:rtl}
+.spell-prompt-hint{font-size:13px;color:var(--text2);margin-top:8px}
+.spell-input-wrap{width:100%;position:relative}
+.spell-input{width:100%;text-align:center;font-size:22px;font-weight:700;letter-spacing:2px;padding:16px;border-radius:var(--r);transition:all .3s}
+.spell-input.correct{border-color:var(--green);box-shadow:0 0 0 3px rgba(61,255,160,.2)}
+.spell-input.wrong{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,82,82,.2);animation:wrongShake .4s}
+.spell-checker{font-size:14px;font-weight:600;text-align:center;min-height:22px}
+.spell-checker.good{color:var(--green)}
+.spell-checker.bad{color:var(--red)}
+.spell-letter-hint{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.spell-letter{width:36px;height:44px;border-radius:var(--r3);border:2px solid var(--stroke2);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;transition:all .2s;font-family:'Courier New',monospace}
+.spell-letter.revealed{border-color:var(--yellow);color:var(--yellow)}
+
+/* ─────────────────────────────────────────────────
+   SCREEN: PROGRESS
+───────────────────────────────────────────────── */
+#s-progress .scroll{display:flex;flex-direction:column;gap:18px;padding-top:12px}
+.prog-section{display:flex;flex-direction:column;gap:10px}
+.prog-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--stroke);border-radius:var(--r2)}
+.prog-row-word{flex:1;min-width:0}
+.prog-row-word .en{font-size:14px;font-weight:600}
+.prog-row-word .he{font-size:13px;color:var(--text2);font-family:'Heebo',sans-serif}
+.prog-row-bar{width:80px;flex-shrink:0}
+.prog-row-pct{font-size:12px;font-weight:700;width:36px;text-align:right;flex-shrink:0}
+.overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ov-card{background:var(--surface);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;text-align:center}
+.ov-card .ov-num{font-size:28px;font-weight:800}
+.ov-card .ov-lbl{font-size:12px;color:var(--text2);margin-top:4px}
+.streak-box{background:linear-gradient(135deg,rgba(255,217,61,.1),rgba(255,159,67,.1));border:1px solid rgba(255,217,61,.2);border-radius:var(--r);padding:20px;display:flex;align-items:center;gap:14px}
+.streak-box .streak-icon{font-size:36px}
+.streak-box .streak-info h2{background:var(--g4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.streak-box .streak-info p{font-size:13px;color:var(--text2)}
+
+/* ─────────────────────────────────────────────────
+   AI TUTOR CHAT
+───────────────────────────────────────────────── */
+#s-ai .scroll{display:flex;flex-direction:column;gap:0;padding:8px 12px 0}
+.chat-messages{flex:1;display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
+.chat-msg{display:flex;gap:8px;align-items:flex-end;animation:fadeIn .3s}
+.chat-msg.user{flex-direction:row-reverse}
+.chat-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:var(--surface2)}
+.chat-bubble{max-width:78%;padding:11px 14px;border-radius:18px;font-size:14px;line-height:1.55;position:relative}
+.chat-msg.ai .chat-bubble{background:var(--surface2);border:1px solid var(--stroke2);border-bottom-left-radius:4px}
+.chat-msg.user .chat-bubble{background:var(--g1);color:#fff;border-bottom-right-radius:4px}
+.chat-bubble .bubble-text{white-space:pre-wrap}
+.chat-bubble .bubble-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.like-btn{background:none;border:1px solid var(--stroke2);border-radius:100px;padding:3px 10px;font-size:12px;cursor:pointer;transition:all .2s;color:var(--text2)}
+.like-btn:hover{background:var(--surface3)}
+.like-btn.liked{background:rgba(61,255,160,.15);border-color:var(--green);color:var(--green)}
+.like-btn.disliked{background:rgba(255,82,82,.1);border-color:var(--red);color:var(--red)}
+.typing-indicator{display:flex;align-items:center;gap:4px;padding:10px 14px;background:var(--surface2);border:1px solid var(--stroke2);border-radius:18px;border-bottom-left-radius:4px;width:fit-content}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);animation:typingBounce 1.4s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+.chat-input-bar{display:flex;gap:8px;padding:10px 12px calc(var(--safe-bottom) + 10px);background:rgba(15,12,26,.95);backdrop-filter:blur(12px);border-top:1px solid var(--stroke);flex-shrink:0}
+.chat-input{flex:1;background:var(--surface2);border:1px solid var(--stroke2);border-radius:22px;padding:10px 16px;font-size:14px;resize:none;max-height:100px;line-height:1.4}
+.chat-send{width:42px;height:42px;border-radius:50%;background:var(--g1);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:transform .15s var(--spring),filter .2s}
+.chat-send:hover{filter:brightness(1.1)}
+.chat-send:active{transform:scale(.9)}
+.chat-send:disabled{opacity:.5;cursor:not-allowed}
+.ai-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:100px;font-size:11px;font-weight:700;background:linear-gradient(135deg,rgba(124,111,247,.3),rgba(176,106,255,.3));border:1px solid rgba(176,106,255,.4);color:var(--purple);margin-bottom:6px}
+
+/* AI SETUP */
+#s-ai-setup .scroll{display:flex;flex-direction:column;gap:20px;padding-top:20px}
+.setup-step{display:flex;gap:12px;align-items:flex-start}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-body h3{font-size:15px;font-weight:700;margin-bottom:4px}
+.step-body p{font-size:13px;color:var(--text2);line-height:1.5}
+.step-body a{color:var(--blue);text-decoration:none;font-weight:600}
+
+/* ─────────────────────────────────────────────────
+   RESULT SCREEN
+───────────────────────────────────────────────── */
+.result-overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(15,12,26,.85);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s;padding:24px}
+.result-overlay.show{opacity:1;pointer-events:auto}
+.result-card{background:var(--bg2);border:1px solid var(--stroke2);border-radius:24px;padding:32px 24px;max-width:340px;width:100%;text-align:center;box-shadow:var(--shadow);animation:popIn .4s var(--spring)}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.result-emoji{font-size:64px;display:block;margin-bottom:16px;animation:bounce 2s infinite}
+.result-card h2{font-size:24px;font-weight:800;margin-bottom:8px}
+.result-card p{color:var(--text2);line-height:1.6;margin-bottom:20px}
+.result-actions{display:flex;flex-direction:column;gap:10px}
+
+/* ─────────────────────────────────────────────────
+   LOADING SPINNER
+───────────────────────────────────────────────── */
+.spinner{width:44px;height:44px;border-radius:50%;border:3px solid var(--surface3);border-top-color:var(--indigo);animation:spin .7s linear infinite;margin:20px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{text-align:center;color:var(--text2);font-size:14px;margin-top:8px}
+.translate-progress{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px}
+
+/* ─────────────────────────────────────────────────
+   TOAST
+───────────────────────────────────────────────── */
+#toast{position:fixed;bottom:calc(var(--safe-bottom) + 24px);left:50%;transform:translateX(-50%) translateY(80px);z-index:200;padding:12px 20px;border-radius:100px;font-size:14px;font-weight:600;white-space:nowrap;pointer-events:none;transition:transform .3s var(--spring),opacity .3s;opacity:0;max-width:90vw;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.success{background:rgba(61,255,160,.9);color:#0a2016}
+#toast.error{background:rgba(255,82,82,.9);color:#fff}
+#toast.info{background:rgba(124,111,247,.9);color:#fff}
+
+/* ─────────────────────────────────────────────────
+   MISC
+───────────────────────────────────────────────── */
+.divider{height:1px;background:var(--stroke);margin:4px 0}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty-state .emo{font-size:48px;display:block;margin-bottom:12px}
+.tag-row{display:flex;gap:6px;flex-wrap:wrap}
+.confetti-burst{position:fixed;top:50%;left:50%;pointer-events:none;z-index:300}
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+
+<div id="app">
+
+<!-- ═══════════════════ HOME ═══════════════════ -->
+<div id="s-home" class="screen active">
+  <div class="topbar">
+    <div class="topbar-title">📚 VocabBoost</div>
+    <button class="btn btn-sm btn-primary" onclick="goScreen('s-add')">+ Add Words</button>
+  </div>
+  <div class="scroll" style="padding-top:16px">
+    <div class="home-hero">
+      <span class="emoji">🚀</span>
+      <h1>Learn English<br/>with Hebrew</h1>
+      <p style="margin-top:8px">Flashcards, games & quizzes<br/>that make vocab stick fast</p>
+    </div>
+    <div class="home-stats" id="home-stats">
+      <div class="stat-box"><div class="num" id="stat-total">0</div><div class="lbl">Words</div></div>
+      <div class="stat-box"><div class="num" id="stat-mastered">0</div><div class="lbl">Mastered</div></div>
+      <div class="stat-box"><div class="num" id="stat-streak">0</div><div class="lbl">Day streak</div></div>
+    </div>
+    <div class="home-menu">
+      <div class="menu-item" onclick="goScreen('s-words')">
+        <div class="menu-icon" style="background:var(--g1)">📋</div>
+        <div class="info"><h3>My Word List</h3><p>View & manage your vocabulary</p></div>
+        <div class="arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="startActivity()">
+        <div class="menu-icon" style="background:var(--g2)">🎮</div>
+        <div class="info"><h3>Practice</h3><p>Games, quizzes & activities</p></div>
+        <div class="arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="openAITutor()">
+        <div class="menu-icon" style="background:linear-gradient(135deg,#7c6ff7,#b06aff)">🤖</div>
+        <div class="info"><h3>AI Tutor</h3><p>Chat with AI, learn from conversation</p></div>
+        <div class="arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="goScreen('s-progress')">
+        <div class="menu-icon" style="background:var(--g3)">📊</div>
+        <div class="info"><h3>Progress</h3><p>Track your learning journey</p></div>
+        <div class="arrow">›</div>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ADD WORDS ═══════════════════ -->
+<div id="s-add" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">Add Words</div>
+  </div>
+  <div class="scroll">
+    <div class="label" style="margin-bottom:6px">Translation direction</div>
+    <div class="toggle-group" id="dir-toggle">
+      <button class="toggle-btn active" onclick="setDir('en-he',this)">English → Hebrew</button>
+      <button class="toggle-btn" onclick="setDir('he-en',this)">Hebrew → English</button>
+    </div>
+    <div class="dir-hint" id="dir-hint">
+      Type or paste English words (one per line, or comma separated). The app will translate them to Hebrew automatically.
+    </div>
+    <div class="input-wrap">
+      <label id="words-label">Your words (one per line)</label>
+      <textarea id="words-input" placeholder="apple&#10;banana&#10;beautiful&#10;freedom..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="translateWords()">
+      <span>✨</span> Translate &amp; Add Words
+    </button>
+    <div id="translate-status"></div>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ WORD LIST ═══════════════════ -->
+<div id="s-words" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">My Words</div>
+    <button class="btn btn-sm btn-secondary" onclick="goScreen('s-add')">+ Add</button>
+  </div>
+  <div class="scroll">
+    <div class="word-list-header">
+      <span class="count" id="word-count">0 words</span>
+      <button class="btn btn-sm btn-danger" onclick="clearWords()">Clear all</button>
+    </div>
+    <div id="word-list-container">
+      <div class="empty-state">
+        <span class="emo">📝</span>
+        <p>No words yet! Add some to get started.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ACTIVITIES ═══════════════════ -->
+<div id="s-activities" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">Choose Activity</div>
+  </div>
+  <div class="scroll">
+    <div class="act-card act-flash" onclick="startFlashcards()">
+      <span class="act-icon">🃏</span>
+      <div class="act-info"><h3>Flashcards</h3><p>Flip & test your memory</p></div>
+      <span class="act-arrow">›</span>
+    </div>
+    <div class="act-card act-quiz" onclick="startQuiz()">
+      <span class="act-icon">🧠</span>
+      <div class="act-info"><h3>Multiple Choice</h3><p>Pick the right translation</p></div>
+      <span class="act-arrow">›</span>
+    </div>
+    <div class="act-card act-match" onclick="startMatching()">
+      <span class="act-icon">🔗</span>
+      <div class="act-info"><h3>Matching</h3><p>Connect words to translations</p></div>
+      <span class="act-arrow">›</span>
+    </div>
+    <div class="act-card act-memory" onclick="startMemory()">
+      <span class="act-icon">🧩</span>
+      <div class="act-info"><h3>Memory Game</h3><p>Find matching pairs</p></div>
+      <span class="act-arrow">›</span>
+    </div>
+    <div class="act-card act-spell" onclick="startSpelling()">
+      <span class="act-icon">✍️</span>
+      <div class="act-info"><h3>Spelling Practice</h3><p>Type the word correctly</p></div>
+      <span class="act-arrow">›</span>
+    </div>
+    <div class="act-card" style="background:linear-gradient(135deg,rgba(124,111,247,.15),rgba(176,106,255,.05));border-color:rgba(124,111,247,.3);color:var(--purple)" onclick="openAITutor()">
+      <span class="act-icon">🤖</span>
+      <div class="act-info"><h3>AI Tutor</h3><p>Chat & get personalized help</p></div>
+      <span class="act-arrow">›</span>
+    </div>
+    <div class="act-card act-progress" onclick="goScreen('s-progress')">
+      <span class="act-icon">📊</span>
+      <div class="act-info"><h3>My Progress</h3><p>See how you're doing</p></div>
+      <span class="act-arrow">›</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FLASHCARDS ═══════════════════ -->
+<div id="s-flash" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">Flashcards</div>
+    <button class="btn btn-sm btn-secondary" onclick="shuffleFlashcards()">🔀</button>
+  </div>
+  <div class="scroll">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span class="flash-counter" id="flash-counter">Card 1 of 10</span>
+      <div class="toggle-group" style="width:auto;padding:3px" id="flash-dir-toggle">
+        <button class="toggle-btn active" style="padding:6px 10px;font-size:12px" onclick="setFlashDir('en',this)">EN→HE</button>
+        <button class="toggle-btn" style="padding:6px 10px;font-size:12px" onclick="setFlashDir('he',this)">HE→EN</button>
+      </div>
+    </div>
+    <div class="prog-bar flash-prog"><div class="prog-fill" id="flash-prog" style="width:10%"></div></div>
+    <div style="height:8px"></div>
+    <div id="flash-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ QUIZ ═══════════════════ -->
+<div id="s-quiz" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">Quiz</div>
+    <span id="quiz-score-badge" class="badge badge-blue">0/0</span>
+  </div>
+  <div class="scroll">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span class="flash-counter" id="quiz-counter">Q 1 of 10</span>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="quiz-prog" style="width:10%"></div></div>
+    <div style="height:12px"></div>
+    <div id="quiz-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MATCHING ═══════════════════ -->
+<div id="s-match" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">Matching</div>
+    <span id="match-score-badge" class="badge badge-green">0/0</span>
+  </div>
+  <div class="scroll">
+    <div class="match-score" id="match-status">Tap a word, then its translation</div>
+    <div style="height:10px"></div>
+    <div id="match-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MEMORY ═══════════════════ -->
+<div id="s-memory" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">Memory Game</div>
+  </div>
+  <div class="scroll">
+    <div class="mem-stats">
+      <div>Moves: <span id="mem-moves">0</span></div>
+      <div>Matched: <span id="mem-matched">0</span>/<span id="mem-total">0</span></div>
+    </div>
+    <div id="memory-grid" class="memory-grid"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SPELLING ═══════════════════ -->
+<div id="s-spell" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">Spelling Practice</div>
+    <span id="spell-score-badge" class="badge badge-yellow">0/0</span>
+  </div>
+  <div class="scroll">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span class="flash-counter" id="spell-counter">Word 1 of 10</span>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="spell-prog" style="width:10%"></div></div>
+    <div style="height:8px"></div>
+    <div id="spell-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PROGRESS ═══════════════════ -->
+<div id="s-progress" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">My Progress</div>
+  </div>
+  <div class="scroll">
+    <div id="progress-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ AI SETUP ═══════════════════ -->
+<div id="s-ai-setup" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">🤖 AI Tutor Setup</div>
+  </div>
+  <div class="scroll">
+    <div style="text-align:center;padding:12px 0 4px">
+      <div style="font-size:52px;margin-bottom:10px">🤖</div>
+      <h2>Connect AI Tutor</h2>
+      <p style="color:var(--text2);font-size:14px;margin-top:6px;line-height:1.6">
+        Get a <strong>free</strong> API key from Groq to unlock<br/>the AI conversation tutor.
+      </p>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Get your free API key</h3>
+        <p>Go to <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>, sign up (free), and create a new API key.</p>
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Paste your key below</h3>
+        <div class="input-wrap" style="margin-top:8px">
+          <input type="text" id="ai-key-input" placeholder="gsk_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" autocorrect="off" spellcheck="false" style="font-family:monospace;font-size:13px"/>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveAIKey()">🚀 Start AI Tutor</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ AI TUTOR CHAT ═══════════════════ -->
+<div id="s-ai" class="screen" style="padding-bottom:0">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title">
+      <span>🤖 AI Tutor</span>
+      <div class="ai-badge" style="margin-right:4px">LIVE</div>
+    </div>
+    <button class="btn btn-sm btn-secondary" onclick="resetAIChat()" title="New chat">↺</button>
+  </div>
+  <div class="scroll" id="ai-chat-scroll">
+    <div class="chat-messages" id="ai-chat-messages"></div>
+  </div>
+  <div class="chat-input-bar">
+    <textarea class="chat-input" id="ai-chat-input" rows="1"
+      placeholder="Type a message..."
+      onkeydown="aiInputKey(event)"
+      oninput="autoResize(this)"></textarea>
+    <button class="chat-send" id="ai-send-btn" onclick="sendUserMessage()">➤</button>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<!-- RESULT OVERLAY -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-card">
+    <span class="result-emoji" id="result-emoji">🎉</span>
+    <h2 id="result-title">Great job!</h2>
+    <p id="result-msg">You completed the activity.</p>
+    <div class="result-actions">
+      <button class="btn btn-primary btn-full" id="result-retry">Try Again</button>
+      <button class="btn btn-secondary btn-full" onclick="closeResult()">Back to Activities</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================================================================
+   STATE
+================================================================ */
+let vocab = [];          // [{en, he, mastery:0-100, attempts:0, correct:0}]
+let direction = 'en-he'; // 'en-he' | 'he-en'
+let screenHistory = ['s-home'];
+let currentActivity = null;
+
+/* ================================================================
+   PERSISTENCE
+================================================================ */
+function save() {
+  localStorage.setItem('vb_vocab', JSON.stringify(vocab));
+  localStorage.setItem('vb_stats', JSON.stringify({
+    streak: getStreak(),
+    lastDate: todayStr()
+  }));
+}
+
+function load() {
+  try { vocab = JSON.parse(localStorage.getItem('vb_vocab') || '[]'); } catch(e){ vocab=[]; }
+  // Remove broken entries: both fields same script, missing fields, or wrong script in field
+  const before = vocab.length;
+  vocab = vocab.filter(w => {
+    if(!w.en || !w.he) return false;
+    if(hasHebrew(w.en)) return false;          // EN field has Hebrew → broken
+    if(!hasHebrew(w.he)) return false;         // HE field has no Hebrew → broken
+    if(!hasLatin(w.en)) return false;          // EN field has no Latin → broken
+    return true;
+  });
+  if(vocab.length < before) {
+    save();
+    console.warn(`Removed ${before - vocab.length} broken word(s) from saved data.`);
+  }
+  checkStreakUpdate();
+  updateHomeStats();
+}
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function getStreak() {
+  try {
+    const s = JSON.parse(localStorage.getItem('vb_stats') || '{}');
+    if(!s.lastDate) return 1;
+    const last = new Date(s.lastDate), today = new Date(todayStr());
+    const diff = Math.floor((today - last) / 86400000);
+    if(diff === 0) return s.streak || 1;
+    if(diff === 1) return (s.streak || 0) + 1;
+    return 1;
+  } catch(e){ return 1; }
+}
+
+function checkStreakUpdate() {
+  const stats = JSON.parse(localStorage.getItem('vb_stats') || '{}');
+  const today = todayStr();
+  if(stats.lastDate !== today) {
+    const newStreak = (() => {
+      if(!stats.lastDate) return 1;
+      const last = new Date(stats.lastDate), t = new Date(today);
+      const diff = Math.floor((t - last) / 86400000);
+      return diff === 1 ? (stats.streak || 0) + 1 : 1;
+    })();
+    localStorage.setItem('vb_stats', JSON.stringify({ streak: newStreak, lastDate: today }));
+  }
+}
+
+/* ================================================================
+   NAVIGATION
+================================================================ */
+function goScreen(id, replace=false) {
+  const prev = screenHistory[screenHistory.length-1];
+  if(prev === id) return;
+  const prevEl = document.getElementById(prev);
+  const nextEl = document.getElementById(id);
+  if(!nextEl) return;
+  if(prevEl) { prevEl.classList.remove('active'); prevEl.classList.add('exit'); setTimeout(()=>prevEl.classList.remove('exit'),400); }
+  nextEl.classList.add('active');
+  if(replace) screenHistory[screenHistory.length-1] = id;
+  else screenHistory.push(id);
+  onScreenEnter(id);
+}
+
+function goBack() {
+  if(screenHistory.length <= 1) return;
+  const cur = screenHistory.pop();
+  const prev = screenHistory[screenHistory.length-1];
+  const curEl = document.getElementById(cur), prevEl = document.getElementById(prev);
+  if(curEl) { curEl.classList.remove('active'); curEl.style.transform='translateX(30px)'; setTimeout(()=>{curEl.style.transform='';},400); }
+  if(prevEl) { prevEl.classList.add('active'); }
+  onScreenEnter(prev);
+}
+
+function onScreenEnter(id) {
+  if(id === 's-home') updateHomeStats();
+  if(id === 's-words') renderWordList();
+  if(id === 's-progress') renderProgress();
+}
+
+/* ================================================================
+   HOME STATS
+================================================================ */
+function updateHomeStats() {
+  document.getElementById('stat-total').textContent = vocab.length;
+  const mastered = vocab.filter(w => w.mastery >= 80).length;
+  document.getElementById('stat-mastered').textContent = mastered;
+  const stats = JSON.parse(localStorage.getItem('vb_stats') || '{}');
+  document.getElementById('stat-streak').textContent = stats.streak || 0;
+}
+
+/* ================================================================
+   DIRECTION TOGGLE
+================================================================ */
+function setDir(dir, btn) {
+  direction = dir;
+  document.querySelectorAll('#dir-toggle .toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const hint = document.getElementById('dir-hint');
+  const label = document.getElementById('words-label');
+  const ta = document.getElementById('words-input');
+  if(dir === 'en-he') {
+    hint.innerHTML = '✨ <strong>Smart detection:</strong> Type English or Hebrew — the app auto-detects the language. Words you type get translated to the opposite language.';
+    label.textContent = 'Your words (one per line)';
+    ta.placeholder = 'apple\nbanana\nfreedom\nתפוח\nחופש...';
+    ta.style.direction = 'ltr';
+    ta.style.textAlign = 'left';
+  } else {
+    hint.innerHTML = '✨ <strong>זיהוי חכם:</strong> אפשר להקליד עברית או אנגלית — האפליקציה מזהה אוטומטית את השפה ותתרגם לשפה השנייה.';
+    label.textContent = 'המילים שלך (שורה לכל מילה)';
+    ta.placeholder = 'תפוח\nבננה\nfreedom\nbeautiful...';
+    ta.style.direction = 'rtl';
+    ta.style.textAlign = 'right';
+  }
+}
+
+/* ================================================================
+   TRANSLATION
+================================================================ */
+// Google Translate uses 'iw' internally for Hebrew
+const GT_CODE = { en: 'en', he: 'iw' };
+
+// Script detection helpers
+function hasHebrew(s) { return /[֐-׿יִ-ﭏ]/.test(s); }
+function hasLatin(s)  { return /[a-zA-Z]/.test(s); }
+function isValidPair(en, he) { return !hasHebrew(en) && hasHebrew(he); }
+
+async function translateWord(word, from, to) {
+  // Primary: unofficial Google Translate endpoint (more reliable)
+  try {
+    const sl = GT_CODE[from] || from;
+    const tl = GT_CODE[to]   || to;
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(word)}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const result = (d[0] || []).map(x => x[0]).filter(Boolean).join('').trim();
+    if(result && result.toLowerCase() !== word.toLowerCase()) return result;
+  } catch(e) {}
+
+  // Fallback: MyMemory
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${from}|${to}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if(d.responseStatus === 200) {
+      const t = (d.responseData.translatedText || '').trim();
+      if(t && t.toLowerCase() !== word.toLowerCase()) return t;
+    }
+  } catch(e) {}
+
+  return null; // both APIs failed for this word
+}
+
+async function translateWords() {
+  const raw = document.getElementById('words-input').value.trim();
+  if(!raw) { showToast('Please enter some words first','error'); return; }
+
+  const lines = raw.replace(/,/g,'\n').split('\n').map(s=>s.trim()).filter(Boolean);
+  if(lines.length === 0) { showToast('No valid words found','error'); return; }
+  if(lines.length > 50) { showToast('Max 50 words at a time','error'); return; }
+
+  const statusEl = document.getElementById('translate-status');
+  statusEl.innerHTML = `<div class="translate-progress"><div class="spinner"></div><div class="loading-text">Translating ${lines.length} words...</div></div>`;
+
+  let added = 0, failed = [];
+  for(let i = 0; i < lines.length; i++) {
+    const word = lines[i];
+    statusEl.querySelector('.loading-text').textContent = `Translating ${i+1} of ${lines.length}...`;
+
+    // Auto-detect script — ignore direction setting if it's wrong
+    const wordIsHe = hasHebrew(word);
+    const wordIsEn = hasLatin(word) && !wordIsHe;
+    if(!wordIsHe && !wordIsEn) { failed.push(word); continue; } // not en or he
+
+    const from = wordIsHe ? 'he' : 'en';
+    const to   = wordIsHe ? 'en' : 'he';
+
+    const translated = await translateWord(word, from, to);
+    if(!translated) { failed.push(word); continue; }
+
+    // Strip Hebrew nikud from translation if Hebrew — compare base letters only
+    const normalize = s => s.replace(/[֑-ׇ]/g, '').toLowerCase().trim();
+    if(normalize(translated) === normalize(word)) { failed.push(word); continue; }
+
+    const en = wordIsEn ? word : translated;
+    const he = wordIsHe ? word : translated;
+
+    // Final validation — must be clean EN ↔ HE pair
+    if(hasHebrew(en) || !hasLatin(en) || !hasHebrew(he)) { failed.push(word); continue; }
+
+    const exists = vocab.some(v => v.en.toLowerCase() === en.toLowerCase());
+    if(!exists) { vocab.push({ en, he, mastery: 0, attempts: 0, correct: 0 }); added++; }
+    await new Promise(r=>setTimeout(r,150));
+  }
+
+  save();
+  statusEl.innerHTML = '';
+  if(added > 0) document.getElementById('words-input').value = '';
+  if(failed.length > 0) {
+    statusEl.innerHTML = `<div class="dir-hint" style="border-color:rgba(255,82,82,.3);background:rgba(255,82,82,.08);color:var(--red)">
+      ⚠️ Could not translate: <strong>${failed.join(', ')}</strong>. Please check spelling and try again.
+    </div>`;
+  }
+  if(added > 0) {
+    showToast(`Added ${added} new word${added!==1?'s':''}! 🎉`, 'success');
+    setTimeout(() => goScreen('s-words'), 900);
+  } else if(failed.length === 0) {
+    showToast('These words are already in your list', 'info');
+  }
+}
+
+/* ================================================================
+   WORD LIST
+================================================================ */
+function renderWordList() {
+  const cnt = document.getElementById('word-count');
+  const container = document.getElementById('word-list-container');
+  cnt.textContent = `${vocab.length} word${vocab.length!==1?'s':''}`;
+
+  if(vocab.length === 0) {
+    container.innerHTML = `<div class="empty-state"><span class="emo">📝</span><p>No words yet! Tap "+ Add" to start.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = vocab.map((w,i) => {
+    const pct = w.mastery || 0;
+    const color = pct>=80?'var(--green)':pct>=40?'var(--yellow)':'var(--text3)';
+    return `<div class="word-item">
+      <div class="word-item-num">${i+1}</div>
+      <div class="word-item-content">
+        <div class="word-item-en">${esc(w.en)}</div>
+        <div class="word-item-he">${esc(w.he)}</div>
+      </div>
+      <div class="mastery-dot" style="background:${color}" title="${pct}% mastery"></div>
+      <div class="word-item-actions">
+        <button class="word-item-del" onclick="deleteWord(${i})" title="Delete">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deleteWord(i) {
+  vocab.splice(i,1);
+  save();
+  renderWordList();
+  updateHomeStats();
+}
+
+function clearWords() {
+  if(!confirm('Delete all words? This cannot be undone.')) return;
+  vocab = [];
+  save();
+  renderWordList();
+  updateHomeStats();
+  showToast('Word list cleared','info');
+}
+
+/* ================================================================
+   ACTIVITIES GATE
+================================================================ */
+function startActivity() {
+  if(vocab.length < 2) { showToast('Add at least 2 words first!','error'); return; }
+  goScreen('s-activities');
+}
+
+/* ================================================================
+   FLASHCARDS
+================================================================ */
+let flashDeck = [], flashIdx = 0, flashShowHe = false, flashDir = 'en';
+let flashKnow = 0, flashSkip = 0;
+
+function setFlashDir(dir, btn) {
+  flashDir = dir;
+  document.querySelectorAll('#flash-dir-toggle .toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFlashCard();
+}
+
+function startFlashcards() {
+  if(vocab.length < 1) { showToast('Add words first!','error'); return; }
+  flashDeck = shuffle([...vocab]);
+  flashIdx = 0; flashShowHe = false; flashKnow = 0; flashSkip = 0;
+  goScreen('s-flash');
+  renderFlashCard();
+}
+
+function shuffleFlashcards() {
+  flashDeck = shuffle([...vocab]);
+  flashIdx = 0; flashShowHe = false;
+  renderFlashCard();
+}
+
+function renderFlashCard() {
+  const el = document.getElementById('flash-content');
+  const total = flashDeck.length;
+  if(flashIdx >= total) {
+    el.innerHTML = `<div class="flash-all-done"><span class="big-emoji">🎉</span><h2>All done!</h2><p style="color:var(--text2);margin:8px 0 20px">You reviewed all ${total} cards</p><div style="display:flex;gap:10px"><button class="btn btn-primary" onclick="shuffleFlashcards()">🔀 Shuffle &amp; Retry</button><button class="btn btn-secondary" onclick="goBack()">Done</button></div></div>`;
+    document.getElementById('flash-counter').textContent = `Done!`;
+    document.getElementById('flash-prog').style.width = '100%';
+    return;
+  }
+  const w = flashDeck[flashIdx];
+  document.getElementById('flash-counter').textContent = `Card ${flashIdx+1} of ${total}`;
+  document.getElementById('flash-prog').style.width = `${((flashIdx)/total)*100}%`;
+
+  const frontWord = flashDir === 'en' ? w.en : w.he;
+  const backWord  = flashDir === 'en' ? w.he : w.en;
+  const frontLabel = flashDir === 'en' ? 'English' : 'Hebrew';
+  const backLabel  = flashDir === 'en' ? 'Hebrew' : 'English';
+  const backClass  = flashDir === 'en' ? 'hebrew' : '';
+
+  el.innerHTML = `
+    <div class="flashcard-scene" onclick="flipCard(this)">
+      <div class="flashcard-inner" id="fc-inner">
+        <div class="flashcard-face flashcard-front">
+          <div class="small-label">${frontLabel} — tap to reveal</div>
+          <div class="word">${esc(frontWord)}</div>
+        </div>
+        <div class="flashcard-face flashcard-back">
+          <div class="small-label">${backLabel}</div>
+          <div class="word ${backClass}">${esc(backWord)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="flashcard-hint">👆 Tap card to flip</div>
+    <div class="flash-actions">
+      <button class="btn flash-skip" onclick="flashNext(false)">✗ Still learning</button>
+      <button class="btn flash-know" onclick="flashNext(true)">✓ Got it!</button>
+    </div>`;
+}
+
+function flipCard(scene) {
+  const inner = scene.querySelector('.flashcard-inner');
+  inner.classList.toggle('flipped');
+}
+
+function flashNext(know) {
+  const w = flashDeck[flashIdx];
+  w.attempts++;
+  if(know) { w.correct++; flashKnow++; } else { flashSkip++; }
+  w.mastery = Math.round((w.correct / w.attempts) * 100);
+  save();
+  flashIdx++;
+  renderFlashCard();
+}
+
+/* ================================================================
+   QUIZ
+================================================================ */
+let quizDeck = [], quizIdx = 0, quizScore = 0, quizAnswered = false;
+
+function startQuiz() {
+  if(vocab.length < 4) { showToast('Add at least 4 words for the quiz','error'); return; }
+  quizDeck = shuffle([...vocab]);
+  quizIdx = 0; quizScore = 0; quizAnswered = false;
+  goScreen('s-quiz');
+  renderQuiz();
+}
+
+function renderQuiz() {
+  const el = document.getElementById('quiz-content');
+  const total = quizDeck.length;
+  document.getElementById('quiz-counter').textContent = `Q ${quizIdx+1} of ${total}`;
+  document.getElementById('quiz-prog').style.width = `${((quizIdx)/total)*100}%`;
+  document.getElementById('quiz-score-badge').textContent = `${quizScore}/${quizIdx}`;
+
+  if(quizIdx >= total) {
+    const pct = Math.round((quizScore/total)*100);
+    showResult(
+      pct>=80?'🏆':pct>=50?'👍':'😅',
+      pct>=80?'Excellent!':pct>=50?'Good Job!':'Keep Practicing!',
+      `You scored ${quizScore} out of ${total} (${pct}%)`,
+      startQuiz
+    );
+    return;
+  }
+
+  const w = quizDeck[quizIdx];
+  const isHe = Math.random() < 0.5; // random direction per question
+  const question = isHe ? w.he : w.en;
+  const answer   = isHe ? w.en : w.he;
+  const questionClass = isHe ? 'hebrew' : '';
+  const optionClass   = isHe ? '' : 'hebrew';
+
+  // 3 wrong answers
+  const others = shuffle(vocab.filter(v=>v.en!==w.en));
+  const wrongs = others.slice(0,3).map(v => isHe ? v.en : v.he);
+  const options = shuffle([answer, ...wrongs]);
+
+  quizAnswered = false;
+
+  el.innerHTML = `
+    <div class="quiz-question-box">
+      <div class="quiz-question-label">What is the translation of:</div>
+      <div class="quiz-question-word ${questionClass}">${esc(question)}</div>
+    </div>
+    <div class="quiz-options">
+      ${options.map(opt => `<button class="quiz-opt ${optionClass}" onclick="checkQuiz(this,'${esc(opt).replace(/'/g,"\\'")}','${esc(answer).replace(/'/g,"\\'")}')">
+        ${esc(opt)}
+      </button>`).join('')}
+    </div>
+    <div class="quiz-feedback" id="quiz-fb" style="display:none"></div>`;
+}
+
+function checkQuiz(btn, chosen, correct) {
+  if(quizAnswered) return;
+  quizAnswered = true;
+  const w = quizDeck[quizIdx];
+  w.attempts++;
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach(o => { o.classList.add('disabled'); if(o.textContent.trim()===correct) o.classList.add('correct'); });
+  const fb = document.getElementById('quiz-fb');
+  fb.style.display='block';
+  if(chosen === correct) {
+    btn.classList.add('correct');
+    fb.textContent = '✓ Correct!';
+    fb.className = 'quiz-feedback good';
+    quizScore++;
+    w.correct++;
+    w.mastery = Math.round((w.correct/w.attempts)*100);
+  } else {
+    btn.classList.add('wrong');
+    fb.textContent = `✗ Correct: ${correct}`;
+    fb.className = 'quiz-feedback bad';
+  }
+  save();
+  document.getElementById('quiz-score-badge').textContent = `${quizScore}/${quizIdx+1}`;
+  setTimeout(()=>{ quizIdx++; renderQuiz(); }, 1400);
+}
+
+/* ================================================================
+   MATCHING GAME
+================================================================ */
+let matchSet = [], matchSelected = null, matchedCount = 0;
+
+function startMatching() {
+  if(vocab.length < 3) { showToast('Add at least 3 words','error'); return; }
+  const size = Math.min(6, vocab.length);
+  matchSet = shuffle([...vocab]).slice(0, size).map((w,i) => ({...w, id:i, matchedLeft:false, matchedRight:false}));
+  matchSelected = null; matchedCount = 0;
+  goScreen('s-match');
+  renderMatching();
+}
+
+function renderMatching() {
+  const el = document.getElementById('match-content');
+  const left  = shuffle(matchSet.map((w,i)=>({...w,side:'left',idx:i})));
+  const right = shuffle(matchSet.map((w,i)=>({...w,side:'right',idx:i})));
+
+  document.getElementById('match-score-badge').textContent = `${matchedCount}/${matchSet.length}`;
+  document.getElementById('match-status').textContent = 'Tap a word, then its translation';
+
+  el.innerHTML = `
+    <div class="match-grid">
+      <div class="match-col">
+        <div class="match-col-label">🇺🇸 English</div>
+        ${left.map(w=>`<div class="match-card" data-id="${w.id}" data-side="left" onclick="matchTap(this)">${esc(w.en)}</div>`).join('')}
+      </div>
+      <div class="match-col">
+        <div class="match-col-label">🇮🇱 Hebrew</div>
+        ${right.map(w=>`<div class="match-card hebrew" data-id="${w.id}" data-side="right" onclick="matchTap(this)">${esc(w.he)}</div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function matchTap(card) {
+  if(card.classList.contains('matched') || card.classList.contains('disabled')) return;
+  if(matchSelected === null) {
+    matchSelected = card;
+    card.classList.add('selected');
+    return;
+  }
+  if(matchSelected === card) { card.classList.remove('selected'); matchSelected = null; return; }
+  if(matchSelected.dataset.side === card.dataset.side) {
+    matchSelected.classList.remove('selected');
+    matchSelected = card;
+    card.classList.add('selected');
+    return;
+  }
+  const a = matchSelected, b = card;
+  if(a.dataset.id === b.dataset.id) {
+    a.classList.remove('selected'); a.classList.add('matched');
+    b.classList.add('matched');
+    matchedCount++;
+    matchSelected = null;
+    document.getElementById('match-score-badge').textContent = `${matchedCount}/${matchSet.length}`;
+    if(matchedCount === matchSet.length) {
+      setTimeout(()=>showResult('🎉','Perfect Match!','You matched all the pairs!',startMatching), 500);
+    }
+  } else {
+    a.classList.remove('selected'); a.classList.add('wrong-flash');
+    b.classList.add('wrong-flash');
+    matchSelected = null;
+    setTimeout(()=>{ a.classList.remove('wrong-flash'); b.classList.remove('wrong-flash'); }, 500);
+  }
+}
+
+/* ================================================================
+   MEMORY GAME
+================================================================ */
+let memCards = [], memFlipped = [], memMatchedCount = 0, memMoves = 0, memLocked = false;
+
+function startMemory() {
+  if(vocab.length < 3) { showToast('Add at least 3 words','error'); return; }
+  const size = Math.min(6, vocab.length);
+  const words = shuffle([...vocab]).slice(0, size);
+  memCards = shuffle([
+    ...words.map((w,i)=>({id:i, type:'en', text:w.en})),
+    ...words.map((w,i)=>({id:i, type:'he', text:w.he}))
+  ]).map((c,idx)=>({...c, cardIdx:idx, flipped:false, matched:false}));
+  memFlipped = []; memMatchedCount = 0; memMoves = 0; memLocked = false;
+  goScreen('s-memory');
+  renderMemory();
+}
+
+function renderMemory() {
+  const cols = memCards.length <= 8 ? 4 : 4;
+  const grid = document.getElementById('memory-grid');
+  grid.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+  grid.innerHTML = memCards.map((c,i) => `
+    <div class="mem-card-wrap">
+      <div class="mem-card${c.flipped||c.matched?' flipped':''}${c.matched?' matched':''}" onclick="memFlip(${i})">
+        <div class="mem-face mem-front"><span class="back-icon">🃏</span></div>
+        <div class="mem-face mem-back ${c.type}">${esc(c.text)}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('mem-moves').textContent = memMoves;
+  document.getElementById('mem-matched').textContent = memMatchedCount;
+  document.getElementById('mem-total').textContent = memCards.length/2;
+}
+
+function memFlip(i) {
+  if(memLocked) return;
+  const c = memCards[i];
+  if(c.flipped || c.matched) return;
+  c.flipped = true;
+  memFlipped.push(i);
+  renderMemory();
+  if(memFlipped.length === 2) {
+    memLocked = true;
+    memMoves++;
+    const [a,b] = memFlipped.map(idx=>memCards[idx]);
+    if(a.id === b.id && a.type !== b.type) {
+      a.matched = b.matched = true;
+      memMatchedCount++;
+      memFlipped = [];
+      memLocked = false;
+      renderMemory();
+      if(memMatchedCount === memCards.length/2) {
+        setTimeout(()=>showResult('🧩','Memory Master!',`Completed in ${memMoves} moves!`,startMemory), 600);
+      }
+    } else {
+      setTimeout(()=>{
+        memCards[memFlipped[0]].flipped = false;
+        memCards[memFlipped[1]].flipped = false;
+        memFlipped = [];
+        memLocked = false;
+        renderMemory();
+      }, 900);
+    }
+  }
+}
+
+/* ================================================================
+   SPELLING PRACTICE
+================================================================ */
+let spellDeck = [], spellIdx = 0, spellScore = 0, spellAttempted = false, spellHintCount = 0;
+
+function startSpelling() {
+  if(vocab.length < 1) { showToast('Add words first!','error'); return; }
+  spellDeck = shuffle([...vocab]);
+  spellIdx = 0; spellScore = 0; spellAttempted = false;
+  goScreen('s-spell');
+  renderSpell();
+}
+
+function renderSpell() {
+  const el = document.getElementById('spell-content');
+  const total = spellDeck.length;
+  document.getElementById('spell-counter').textContent = `Word ${spellIdx+1} of ${total}`;
+  document.getElementById('spell-prog').style.width = `${((spellIdx)/total)*100}%`;
+  document.getElementById('spell-score-badge').textContent = `${spellScore}/${spellIdx}`;
+
+  if(spellIdx >= total) {
+    const pct = Math.round((spellScore/total)*100);
+    showResult(
+      pct>=80?'✍️':'📝',
+      pct>=80?'Spelling Champion!':'Keep Practicing!',
+      `Spelled ${spellScore} out of ${total} correctly (${pct}%)`,
+      startSpelling
+    );
+    return;
+  }
+
+  const w = spellDeck[spellIdx];
+  spellAttempted = false;
+  spellHintCount = 0;
+  const letters = w.en.split('').map((_,i) => `<div class="spell-letter" id="sl-${i}">_</div>`).join('');
+
+  el.innerHTML = `
+    <div class="spell-prompt-box">
+      <div class="spell-prompt-label">Spell the English word for:</div>
+      <div class="spell-prompt-word">${esc(w.he)}</div>
+      <div class="spell-prompt-hint">Length: ${w.en.length} letters</div>
+    </div>
+    <div class="spell-letter-hint">${letters}</div>
+    <div class="spell-input-wrap">
+      <input type="text" class="spell-input" id="spell-inp" autocomplete="off" autocorrect="off" spellcheck="false"
+        placeholder="Type the English word..."
+        onkeyup="checkSpell(event)"
+        oninput="updateSpellHint()"/>
+    </div>
+    <div class="spell-checker" id="spell-checker"></div>
+    <div style="display:flex;gap:10px;width:100%">
+      <button class="btn btn-secondary" style="flex:1" onclick="showSpellHint()">💡 Hint</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="skipSpell()">Skip →</button>
+    </div>`;
+  setTimeout(()=>document.getElementById('spell-inp')?.focus(),100);
+}
+
+function updateSpellHint() {
+  const inp = document.getElementById('spell-inp');
+  if(!inp) return;
+  const w = spellDeck[spellIdx];
+  const typed = inp.value.toLowerCase();
+  for(let i=0;i<w.en.length;i++) {
+    const sl = document.getElementById('sl-'+i);
+    if(sl) sl.textContent = typed[i] || '_';
+  }
+}
+
+function checkSpell(e) {
+  const inp = document.getElementById('spell-inp');
+  if(!inp) return;
+  const w = spellDeck[spellIdx];
+  const typed = inp.value.trim().toLowerCase();
+  const checker = document.getElementById('spell-checker');
+  updateSpellHint();
+  if(e.key === 'Enter' || typed === w.en.toLowerCase()) {
+    if(typed === w.en.toLowerCase()) {
+      inp.classList.add('correct');
+      checker.textContent = '✓ Correct!';
+      checker.className = 'spell-checker good';
+      if(!spellAttempted) spellScore++;
+      spellAttempted = true;
+      w.attempts++;
+      w.correct++;
+      w.mastery = Math.round((w.correct/w.attempts)*100);
+      save();
+      setTimeout(()=>{ spellIdx++; renderSpell(); },1000);
+    } else if(e.key === 'Enter') {
+      inp.classList.add('wrong');
+      checker.textContent = `✗ Try again! (${w.en.length} letters)`;
+      checker.className = 'spell-checker bad';
+      spellAttempted = true;
+      setTimeout(()=>inp.classList.remove('wrong'),500);
+    }
+  } else {
+    inp.classList.remove('correct','wrong');
+    checker.textContent = '';
+  }
+}
+
+function showSpellHint() {
+  const w = spellDeck[spellIdx];
+  spellHintCount++;
+  const revealUpTo = Math.min(spellHintCount, Math.floor(w.en.length/2));
+  for(let i=0;i<revealUpTo;i++) {
+    const sl = document.getElementById('sl-'+i);
+    if(sl) { sl.textContent = w.en[i]; sl.classList.add('revealed'); }
+  }
+  spellAttempted = true;
+}
+
+function skipSpell() {
+  const w = spellDeck[spellIdx];
+  const checker = document.getElementById('spell-checker');
+  if(checker) { checker.textContent = `Answer: ${w.en}`; checker.className='spell-checker bad'; }
+  spellAttempted = true;
+  w.attempts++;
+  save();
+  setTimeout(()=>{ spellIdx++; renderSpell(); },1200);
+}
+
+/* ================================================================
+   PROGRESS SCREEN
+================================================================ */
+function renderProgress() {
+  const el = document.getElementById('progress-content');
+  if(vocab.length === 0) {
+    el.innerHTML = `<div class="empty-state"><span class="emo">📊</span><p>No data yet. Start practicing!</p></div>`;
+    return;
+  }
+  const stats = JSON.parse(localStorage.getItem('vb_stats') || '{}');
+  const mastered = vocab.filter(w=>w.mastery>=80).length;
+  const learning = vocab.filter(w=>w.mastery>0&&w.mastery<80).length;
+  const notStarted = vocab.filter(w=>w.mastery===0||!w.mastery).length;
+  const totalAttempts = vocab.reduce((s,w)=>s+(w.attempts||0),0);
+
+  el.innerHTML = `
+    <div class="streak-box">
+      <div class="streak-icon">🔥</div>
+      <div class="streak-info">
+        <h2>${stats.streak||0} Day Streak</h2>
+        <p>Keep it up! Practice every day.</p>
+      </div>
+    </div>
+    <div class="overview-grid">
+      <div class="ov-card"><div class="ov-num" style="color:var(--blue)">${vocab.length}</div><div class="ov-lbl">Total Words</div></div>
+      <div class="ov-card"><div class="ov-num" style="color:var(--green)">${mastered}</div><div class="ov-lbl">Mastered</div></div>
+      <div class="ov-card"><div class="ov-num" style="color:var(--yellow)">${learning}</div><div class="ov-lbl">Learning</div></div>
+      <div class="ov-card"><div class="ov-num" style="color:var(--text2)">${notStarted}</div><div class="ov-lbl">Not Started</div></div>
+    </div>
+    <div class="label">Word Progress</div>
+    <div class="prog-section">
+      ${vocab.sort((a,b)=>(b.mastery||0)-(a.mastery||0)).map(w=>{
+        const pct = w.mastery || 0;
+        const color = pct>=80?'var(--green)':pct>=40?'var(--yellow)':'var(--text3)';
+        return `<div class="prog-row">
+          <div class="prog-row-word">
+            <div class="en">${esc(w.en)}</div>
+            <div class="he">${esc(w.he)}</div>
+          </div>
+          <div class="prog-row-bar"><div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${color}"></div></div></div>
+          <div class="prog-row-pct" style="color:${color}">${pct}%</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="height:12px"></div>`;
+}
+
+/* ================================================================
+   RESULT OVERLAY
+================================================================ */
+function showResult(emoji, title, msg, retryFn) {
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-msg').textContent = msg;
+  const btn = document.getElementById('result-retry');
+  btn.onclick = () => { closeResult(); retryFn(); };
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+function closeResult() {
+  document.getElementById('result-overlay').classList.remove('show');
+  goScreen('s-activities', true);
+}
+
+/* ================================================================
+   TOAST
+================================================================ */
+let toastTimer;
+function showToast(msg, type='info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.className='',2500);
+}
+
+/* ================================================================
+   UTILS
+================================================================ */
+function shuffle(arr) {
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  return arr;
+}
+function esc(s){ const d=document.createElement('div');d.textContent=s||'';return d.innerHTML; }
+
+/* ================================================================
+   AI TUTOR
+================================================================ */
+let aiMessages = [];      // [{role, content, id, liked}]
+let aiLikedExamples = []; // stored good responses
+let aiThinking = false;
+let aiMsgId = 0;
+
+function loadAIPrefs() {
+  try { aiLikedExamples = JSON.parse(localStorage.getItem('vb_ai_likes') || '[]'); } catch(e){ aiLikedExamples=[]; }
+}
+function saveAIPrefs() { localStorage.setItem('vb_ai_likes', JSON.stringify(aiLikedExamples.slice(-10))); }
+
+function openAITutor() {
+  if(vocab.length < 1) { showToast('Add words first!','error'); return; }
+  const key = localStorage.getItem('vb_ai_key');
+  if(!key) { goScreen('s-ai-setup'); return; }
+  goScreen('s-ai');
+  if(aiMessages.length === 0) initAIChat();
+}
+
+function saveAIKey() {
+  const val = document.getElementById('ai-key-input').value.trim();
+  if(!val || val.length < 10) { showToast('Please enter a valid API key','error'); return; }
+  localStorage.setItem('vb_ai_key', val);
+  goScreen('s-ai', true);
+  if(aiMessages.length === 0) initAIChat();
+}
+
+function buildSystemPrompt() {
+  const wordList = vocab.slice(0,40).map(w=>`${w.en} = ${w.he}`).join(', ');
+  const likedSnippets = aiLikedExamples.slice(-4).map(e=>`"${e}"`).join('\n');
+  return `You are an enthusiastic English tutor helping a Hebrew-speaking student learn vocabulary.
+
+The student's word list: ${wordList}
+
+Your job: hold short, engaging conversations that help the student practice these words. You:
+- Proactively pick words to practice
+- Ask the student to use words in sentences
+- Give encouraging feedback with gentle corrections
+- Keep replies SHORT (2-4 sentences max)
+- Occasionally mix in a Hebrew word or phrase to help explain
+- Celebrate progress with emojis 🎉
+${likedSnippets ? `\nExamples of responses the student especially liked (match this style):\n${likedSnippets}` : ''}
+
+Start conversations yourself — don't wait for the student to lead. Be warm, fun, and patient.`;
+}
+
+async function callAI(messages) {
+  const key = localStorage.getItem('vb_ai_key');
+  if(!key) return null;
+  const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+  const systemPrompt = buildSystemPrompt();
+
+  const r = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      messages: [{ role:'system', content: systemPrompt }, ...messages.map(m=>({role:m.role,content:m.content}))],
+      max_tokens: 180,
+      temperature: 0.85
+    })
+  });
+
+  if(!r.ok) {
+    const err = await r.json().catch(()=>({}));
+    const msg = err?.error?.message || `Error ${r.status}`;
+    if(r.status === 401) throw new Error('Invalid API key. Go back and update it in Setup.');
+    throw new Error(msg);
+  }
+  const d = await r.json();
+  return d.choices?.[0]?.message?.content?.trim() || null;
+}
+
+async function initAIChat() {
+  aiMessages = [];
+  renderAIMessages();
+  showTyping();
+  try {
+    const greeting = await callAI([]);
+    hideTyping();
+    if(greeting) appendAIMessage(greeting);
+  } catch(e) {
+    hideTyping();
+    appendAIMessage(`Oops! ${e.message}`);
+  }
+}
+
+function resetAIChat() {
+  if(!confirm('Start a new conversation?')) return;
+  aiMessages = [];
+  initAIChat();
+}
+
+async function sendUserMessage() {
+  const inp = document.getElementById('ai-chat-input');
+  const text = inp?.value?.trim();
+  if(!text || aiThinking) return;
+  inp.value = '';
+  autoResize(inp);
+
+  const userMsg = { role:'user', content:text, id: ++aiMsgId };
+  aiMessages.push(userMsg);
+  renderAIMessages();
+  scrollAIToBottom();
+
+  aiThinking = true;
+  document.getElementById('ai-send-btn').disabled = true;
+  showTyping();
+
+  try {
+    const reply = await callAI(aiMessages);
+    hideTyping();
+    if(reply) appendAIMessage(reply);
+  } catch(e) {
+    hideTyping();
+    appendAIMessage(`⚠️ ${e.message}`);
+  } finally {
+    aiThinking = false;
+    document.getElementById('ai-send-btn').disabled = false;
+  }
+}
+
+function appendAIMessage(content) {
+  const msg = { role:'ai', content, id: ++aiMsgId, liked: null };
+  aiMessages.push(msg);
+  renderAIMessages();
+  scrollAIToBottom();
+}
+
+function renderAIMessages() {
+  const el = document.getElementById('ai-chat-messages');
+  if(!el) return;
+  if(aiMessages.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:30px 16px;color:var(--text2)">
+      <div style="font-size:40px;margin-bottom:10px">🤖</div>
+      <p style="font-size:14px;line-height:1.6">The AI tutor is starting the conversation…</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = aiMessages.map(m => {
+    if(m.role === 'user') {
+      return `<div class="chat-msg user">
+        <div class="chat-avatar">😊</div>
+        <div class="chat-bubble"><div class="bubble-text">${esc(m.content)}</div></div>
+      </div>`;
+    }
+    const likedClass = m.liked === true ? 'liked' : m.liked === false ? 'disliked' : '';
+    return `<div class="chat-msg ai">
+      <div class="chat-avatar">🤖</div>
+      <div class="chat-bubble">
+        <div class="bubble-text">${esc(m.content)}</div>
+        <div class="bubble-actions">
+          <button class="like-btn ${m.liked===true?'liked':''}" onclick="rateMsg(${m.id},true)">👍 Helpful</button>
+          <button class="like-btn ${m.liked===false?'disliked':''}" onclick="rateMsg(${m.id},false)">👎 Not helpful</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function rateMsg(id, liked) {
+  const msg = aiMessages.find(m=>m.id===id);
+  if(!msg) return;
+  msg.liked = liked;
+  if(liked && msg.content.length > 20) {
+    // Store as a positive example for future prompts
+    aiLikedExamples.push(msg.content.slice(0, 120));
+    saveAIPrefs();
+    showToast('Got it! AI will learn your style 👍','success');
+  } else if(!liked) {
+    showToast("Noted — AI will try a different approach",'info');
+  }
+  renderAIMessages();
+}
+
+let typingEl = null;
+function showTyping() {
+  const el = document.getElementById('ai-chat-messages');
+  if(!el) return;
+  typingEl = document.createElement('div');
+  typingEl.className = 'chat-msg ai';
+  typingEl.id = 'typing-indicator';
+  typingEl.innerHTML = `<div class="chat-avatar">🤖</div>
+    <div class="typing-indicator">
+      <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+    </div>`;
+  el.appendChild(typingEl);
+  scrollAIToBottom();
+}
+function hideTyping() {
+  document.getElementById('typing-indicator')?.remove();
+}
+
+function scrollAIToBottom() {
+  const scroll = document.getElementById('ai-chat-scroll');
+  if(scroll) setTimeout(()=>{ scroll.scrollTop = scroll.scrollHeight; }, 80);
+}
+
+function aiInputKey(e) {
+  if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendUserMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+/* ================================================================
+   BOOT
+================================================================ */
+load();
+loadAIPrefs();
+</script>
+</body>
+</html>
