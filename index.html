@@ -1496,15 +1496,22 @@ async function generateAnswers() {
     payload = { ...base, mode:'text', text };
   }
   console.log('[reply-source] requesting from Claude backend, situation=' + payload.situation + ', style=' + payload.style);
-  const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
-    body: JSON.stringify(payload)
-  });
+  let r;
+  try {
+    r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+      body: JSON.stringify(payload)
+    });
+  } catch (netErr) {
+    console.error('[reply-source] network error:', netErr);
+    throw new Error('לא הצלחנו להתחבר לשרת. נסה שוב בעוד רגע 🔄');
+  }
   if (!r.ok) {
     let m = `שגיאה (${r.status})`;
     try { const j = await r.json(); if (j.error) m += `: ${j.error}`; } catch {}
     console.error('[reply-source] backend error:', m);
+    if (r.status === 413) m = 'התמונה גדולה מדי, נסה צילום מסך קטן יותר';
     throw new Error(m);
   }
   const d = await r.json();
@@ -2531,25 +2538,59 @@ function attachHandlers() {
   }));
 
   // ---- attach image ----
+  // Resize + recompress so phone screenshots never exceed backend/Claude limits.
+  // (Full-res screenshots can be several MB, which caused "image too large"
+  //  errors and slow uploads that surfaced as "connection problems".)
+  window.compressImage = function(file, maxDim = 1568, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('read failed'));
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('decode failed'));
+        img.onload = () => {
+          let { width, height } = img;
+          if (!width || !height) return reject(new Error('empty image'));
+          const scale = Math.min(1, maxDim / Math.max(width, height));
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';        // flatten transparency for JPEG
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          try {
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
+          } catch (e) { reject(e); }
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   $('#attachBtn')?.addEventListener('click', () => {
     if (!getLimits().hasImageUpload) { haptic(20); state.navTab='premium'; render(); showToast('העלאת צילומי מסך זמינה ב-Pro 💎', 'error'); return; }
     haptic();
     state.inputMode = 'image';
     $('#fileIn').click();
   });
-  $('#fileIn')?.addEventListener('change', (e) => {
+  $('#fileIn')?.addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;
     if (!f.type.startsWith('image/')) { showToast('קובץ תמונה בלבד', 'error'); return; }
-    if (f.size > 5*1024*1024) { showToast('עד 5MB', 'error'); return; }
-    const r = new FileReader();
-    r.onload = (ev) => {
-      const url = ev.target.result;
-      state.imageBase64 = url.split(',')[1];
-      state.imageMediaType = f.type;
+    if (f.size > 25*1024*1024) { showToast('התמונה גדולה מדי', 'error'); return; }
+    try {
+      const { base64, mediaType } = await compressImage(f);
+      state.imageBase64 = base64;
+      state.imageMediaType = mediaType;
       render();
-    };
-    r.readAsDataURL(f);
+    } catch (err) {
+      console.error('image compress error:', err);
+      showToast('לא הצלחנו לעבד את התמונה, נסה צילום אחר', 'error');
+    }
   });
   $('#rmImg')?.addEventListener('click', () => { haptic(); state.imageBase64=null; state.imageMediaType=null; state.inputMode='text'; render(); });
   $('#backToText')?.addEventListener('click', () => { haptic(); state.inputMode='text'; render(); });
@@ -3136,18 +3177,18 @@ document.addEventListener('paste', (e) => {
     if (it.type.startsWith('image/')) {
       const f = it.getAsFile();
       if (f) {
-        const r = new FileReader();
-        r.onload = (ev) => {
-          const url = ev.target.result;
-          state.imageBase64 = url.split(',')[1];
-          state.imageMediaType = f.type;
+        e.preventDefault();
+        compressImage(f).then(({ base64, mediaType }) => {
+          state.imageBase64 = base64;
+          state.imageMediaType = mediaType;
           state.inputMode = 'image';
           render();
           showToast('תמונה צורפה ✓', 'success');
           haptic();
-        };
-        r.readAsDataURL(f);
-        e.preventDefault();
+        }).catch((err) => {
+          console.error('image compress error:', err);
+          showToast('לא הצלחנו לעבד את התמונה', 'error');
+        });
         break;
       }
     }
