@@ -1,5 +1,5 @@
 // ============================================================================
-// chat-replies — Supabase Edge Function (Deno) — v2
+// chat-replies — Supabase Edge Function (Deno)
 //
 // Generates dating-reply suggestions for the "מה לענות לה" app by calling the
 // Anthropic Messages API. Rebuilt to use Deno.serve + raw fetch (NO
