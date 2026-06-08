@@ -197,7 +197,15 @@ Deno.serve(async (req: Request) => {
     return json({ error: "גוף בקשה לא תקין" }, 400);
   }
 
-  const mode = payload.mode;
+  const mode = typeof payload.mode === "string" ? payload.mode.trim().toLowerCase() : "";
+  console.log("chat-replies request:", JSON.stringify({
+    mode,
+    hasText: !!payload.text,
+    hasImage: !!payload.imageBase64,
+    hasIntent: !!payload.intent,
+    style: payload.style,
+    situation: payload.situation,
+  }));
 
   try {
     if (mode === "coach") {
@@ -234,17 +242,22 @@ Deno.serve(async (req: Request) => {
       return json(result, 200);
     }
 
-    // text / opener / phrase / emergency
-    if (["text", "opener", "phrase", "emergency"].includes(mode)) {
+    // text / opener / phrase / emergency — or anything else with a text payload
+    // (be lenient: an unfamiliar mode shouldn't break the user, just treat as text)
+    const effectiveMode = ["text", "opener", "phrase", "emergency"].includes(mode)
+      ? mode
+      : payload.text ? "text" : payload.intent ? "phrase" : "";
+
+    if (effectiveMode) {
       const result = await callAnthropic({
         system: baseSystemPrompt(),
-        userContent: buildReplyUserPrompt(payload),
+        userContent: buildReplyUserPrompt({ ...payload, mode: effectiveMode }),
         maxTokens: 1200,
       });
       return json(result, 200);
     }
 
-    return json({ error: `מצב לא נתמך: ${mode}` }, 400);
+    return json({ error: `מצב לא נתמך: ${mode || "(ריק)"}` }, 400);
   } catch (e) {
     console.error("chat-replies error:", e);
     return json({ error: (e as Error).message || "שגיאת שרת" }, 500);
