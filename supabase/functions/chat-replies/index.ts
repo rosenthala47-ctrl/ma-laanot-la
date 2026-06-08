@@ -128,52 +128,10 @@ function buildCoachUserPrompt(p: any): string {
 - tips: מערך של 2-3 טיפים אישיים לשיחה`;
 }
 
-// ---- JSON schemas (structured outputs) ---------------------------------------
-const ANSWERS_SCHEMA = {
-  type: "object",
-  properties: {
-    answers: { type: "array", items: { type: "string" } },
-  },
-  required: ["answers"],
-  additionalProperties: false,
-};
-
-const COACH_SCHEMA = {
-  type: "object",
-  properties: {
-    interest: { type: "integer" },
-    tone: { type: "string" },
-    interestReason: { type: "string" },
-    signals: { type: "array", items: { type: "string" } },
-    timing: {
-      type: "object",
-      properties: { action: { type: "string" }, reason: { type: "string" } },
-      required: ["action", "reason"],
-      additionalProperties: false,
-    },
-    replies: {
-      type: "object",
-      properties: {
-        funny: { type: "string" },
-        confident: { type: "string" },
-        flirty: { type: "string" },
-        mysterious: { type: "string" },
-        chill: { type: "string" },
-      },
-      required: ["funny", "confident", "flirty", "mysterious", "chill"],
-      additionalProperties: false,
-    },
-    tips: { type: "array", items: { type: "string" } },
-  },
-  required: ["interest", "tone", "interestReason", "signals", "timing", "replies", "tips"],
-  additionalProperties: false,
-};
-
 // ---- Anthropic call ----------------------------------------------------------
 async function callAnthropic(opts: {
   system: string;
   userContent: any;
-  schema: unknown;
   maxTokens: number;
 }): Promise<any> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -188,7 +146,6 @@ async function callAnthropic(opts: {
       max_tokens: opts.maxTokens,
       system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: opts.userContent }],
-      output_config: { format: { type: "json_schema", schema: opts.schema } },
     }),
   });
 
@@ -201,7 +158,21 @@ async function callAnthropic(opts: {
   const data = await res.json();
   const textBlock = (data.content || []).find((b: any) => b.type === "text");
   if (!textBlock) throw new Error("תשובה ריקה מהמודל");
-  return JSON.parse(textBlock.text);
+
+  // Extract JSON robustly — strip any markdown fences the model may add
+  let text: string = textBlock.text.trim();
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) text = fenceMatch[1].trim();
+  // Also handle case where model wraps in a single JSON object/array without fences but with prose
+  const firstBrace = text.indexOf("{");
+  const firstBracket = text.indexOf("[");
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    text = text.slice(firstBrace, text.lastIndexOf("}") + 1);
+  } else if (firstBracket !== -1) {
+    text = text.slice(firstBracket, text.lastIndexOf("]") + 1);
+  }
+
+  return JSON.parse(text);
 }
 
 // ---- handler -----------------------------------------------------------------
@@ -236,7 +207,6 @@ Deno.serve(async (req: Request) => {
       const result = await callAnthropic({
         system: baseSystemPrompt(),
         userContent: buildCoachUserPrompt(payload),
-        schema: COACH_SCHEMA,
         maxTokens: 2000,
       });
       return json(result, 200);
@@ -259,7 +229,6 @@ Deno.serve(async (req: Request) => {
           },
           { type: "text", text: buildImageUserPrompt(payload) },
         ],
-        schema: ANSWERS_SCHEMA,
         maxTokens: 1200,
       });
       return json(result, 200);
@@ -270,7 +239,6 @@ Deno.serve(async (req: Request) => {
       const result = await callAnthropic({
         system: baseSystemPrompt(),
         userContent: buildReplyUserPrompt(payload),
-        schema: ANSWERS_SCHEMA,
         maxTokens: 1200,
       });
       return json(result, 200);
