@@ -13,7 +13,7 @@ const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 // Default to the most capable model. To lower cost, switch to
 // "claude-sonnet-4-6" (≈5× cheaper) or "claude-haiku-4-5" (cheapest).
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-sonnet-4-6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
