@@ -148,8 +148,6 @@ async function callAnthropic(opts: {
   userContent: any;
   maxTokens: number;
 }): Promise<any> {
-  // Prefill the assistant response with "{" — this forces Claude to continue
-  // as a JSON object instead of writing prose first.
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -161,10 +159,7 @@ async function callAnthropic(opts: {
       model: MODEL,
       max_tokens: opts.maxTokens,
       system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
-      messages: [
-        { role: "user", content: opts.userContent },
-        { role: "assistant", content: "{" },
-      ],
+      messages: [{ role: "user", content: opts.userContent }],
     }),
   });
 
@@ -179,19 +174,21 @@ async function callAnthropic(opts: {
   const textBlock = (data.content || []).find((b: any) => b.type === "text");
   if (!textBlock) throw new Error("תשובה ריקה מהמודל");
 
-  // Because we prefilled with "{", the response continues from after that "{".
-  // Reconstruct the full JSON by prepending the opening brace.
-  let raw: string = "{" + textBlock.text;
+  let raw: string = textBlock.text.trim();
 
-  // Defensive: strip any markdown fences if the model added them anyway
+  // Strip markdown fences if the model added them
   const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenceMatch) raw = fenceMatch[1].trim();
 
-  // Slice from first "{" to last "}" to drop any trailing prose
-  const first = raw.indexOf("{");
-  const last = raw.lastIndexOf("}");
-  if (first !== -1 && last !== -1 && last > first) {
-    raw = raw.slice(first, last + 1);
+  // Slice from first "{" or "[" to last matching closer to drop any prose
+  const firstBrace = raw.indexOf("{");
+  const firstBracket = raw.indexOf("[");
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    const lastBrace = raw.lastIndexOf("}");
+    if (lastBrace > firstBrace) raw = raw.slice(firstBrace, lastBrace + 1);
+  } else if (firstBracket !== -1) {
+    const lastBracket = raw.lastIndexOf("]");
+    if (lastBracket > firstBracket) raw = raw.slice(firstBracket, lastBracket + 1);
   }
 
   try {
