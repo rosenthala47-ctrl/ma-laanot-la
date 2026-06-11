@@ -11,10 +11,18 @@
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
-// The model is chosen per-request via pickModel(): paid tiers (and the free
-// daily bonus) request "opus" → claude-opus-4-8; everyone else → sonnet.
+// The model is chosen SERVER-SIDE in decideModel() — never trusts the client.
+// Paid tiers (and the free 1/day bonus) → Opus; everyone else → Sonnet.
 const OPUS_MODEL = "claude-opus-4-8";
 const SONNET_MODEL = "claude-sonnet-4-6";
+
+// Supabase-injected secrets (available to every edge function by default).
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+// Admins always get the strongest model.
+const ADMIN_EMAILS = ["rosenthala47@gmail.com"];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -226,11 +234,73 @@ async function runTool(opts: {
   return input;
 }
 
-// Map the tier hint the frontend sends to an actual model id.
-function pickModel(payload: any): string {
-  const want = String(payload?.model || "").toLowerCase();
-  if (want === "opus" || want.includes("opus")) return OPUS_MODEL;
-  return SONNET_MODEL;
+// ---- server-side model authority (cannot be bypassed by the client) ---------
+
+// Verify the caller's JWT against Supabase Auth and return their identity.
+// Returns null if not logged in or the token can't be verified.
+async function getVerifiedUser(
+  authHeader: string | null,
+): Promise<{ id: string; email: string; meta: any } | null> {
+  if (!authHeader || !SUPABASE_URL || !ANON_KEY) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { Authorization: authHeader, apikey: ANON_KEY },
+    });
+    if (!res.ok) return null;
+    const u = await res.json();
+    if (!u?.id) return null;
+    return { id: u.id, email: String(u.email || "").toLowerCase(), meta: u.user_metadata || {} };
+  } catch (e) {
+    console.error("getVerifiedUser error:", e);
+    return null;
+  }
+}
+
+function isPaidTier(user: { email: string; meta: any }): boolean {
+  if (ADMIN_EMAILS.includes(user.email)) return true;
+  const tier = user.meta?.subscription_tier;
+  const expiry = user.meta?.subscription_expiry;
+  if (tier === "plus" || tier === "pro") {
+    if (!expiry || new Date(expiry) > new Date()) return true;
+  }
+  return false;
+}
+
+// Atomically consume one free daily Opus bonus via a SECURITY DEFINER RPC.
+// Returns true only if a bonus was available and has now been consumed.
+// Tamper-proof: the table is service-role-only, so the client can't reset it.
+async function consumeFreeOpusBonus(userId: string): Promise<boolean> {
+  if (!SUPABASE_URL || !SERVICE_ROLE) return false;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consume_opus_bonus`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        apikey: SERVICE_ROLE,
+        Authorization: `Bearer ${SERVICE_ROLE}`,
+      },
+      body: JSON.stringify({ uid: userId, d: today, lim: 1 }),
+    });
+    if (!res.ok) {
+      console.error("consume_opus_bonus failed:", res.status, await res.text().catch(() => ""));
+      return false;
+    }
+    return (await res.json()) === true;
+  } catch (e) {
+    console.error("consume_opus_bonus error:", e);
+    return false;
+  }
+}
+
+// Decide the model purely on the verified server-side identity.
+// The client's payload.model is IGNORED — it cannot be used to bypass tiers.
+async function decideModel(req: Request): Promise<string> {
+  const user = await getVerifiedUser(req.headers.get("Authorization"));
+  if (!user) return SONNET_MODEL;          // not logged in / unverifiable
+  if (isPaidTier(user)) return OPUS_MODEL; // paid + admins → always Opus
+  const granted = await consumeFreeOpusBonus(user.id);
+  return granted ? OPUS_MODEL : SONNET_MODEL; // free → 1 Opus/day, then Sonnet
 }
 
 // ---- Tool schemas ------------------------------------------------------------
@@ -396,8 +466,8 @@ Deno.serve(async (req: Request) => {
     }, 400);
   }
 
-  const model = pickModel(payload);
-  console.log("using model:", model, "(requested:", payload?.model || "default", ")");
+  const model = await decideModel(req);
+  console.log("server-decided model:", model);
 
   try {
     if (mode === "coach") {
