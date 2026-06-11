@@ -1840,11 +1840,25 @@ function getOpusBonusUsedToday() { return parseInt(localStorage.getItem(opusBonu
 function bumpOpusBonus() { localStorage.setItem(opusBonusKey(), String(getOpusBonusUsedToday()+1)); }
 function freeOpusRemaining() { return Math.max(0, 1 - getOpusBonusUsedToday()); }
 // Decide which model to request for this generation. Returns { model, isFreeBonus }.
+// NOTE: this is now only an optimistic UI hint — the SERVER decides the real
+// model from the verified JWT and ignores what we send. The daily Opus bonus
+// is also tracked server-side, so it can't be bypassed from the client.
 function pickModel() {
   const tier = getTier();
   if (tier === 'plus' || tier === 'pro') return { model:'opus', isFreeBonus:false };
   if (freeOpusRemaining() > 0) return { model:'opus', isFreeBonus:true };
   return { model:'sonnet', isFreeBonus:false };
+}
+
+// Headers for chat-replies calls. Sends the user's real JWT so the server can
+// verify their plan (paid vs free) — never the bare anon key for logged-in users.
+async function chatFnHeaders() {
+  let auth = `Bearer ${CONFIG.SUPABASE_ANON_KEY}`;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.access_token) auth = `Bearer ${session.access_token}`;
+  } catch {}
+  return { 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':auth };
 }
 
 // ---------- streak ----------
@@ -1965,7 +1979,7 @@ async function generateAnswers() {
   try {
     r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
       method:'POST',
-      headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+      headers: await chatFnHeaders(),
       body: payloadStr,
       signal: ctrl.signal,
     });
@@ -4067,7 +4081,7 @@ async function handleCoachAnalyze() {
     };
     const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
       method:'POST',
-      headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+      headers: await chatFnHeaders(),
       body: JSON.stringify(payload)
     });
     if (!r.ok) {
@@ -4131,7 +4145,7 @@ function openEmergencySheet() {
       };
       const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
         method:'POST',
-        headers:{ 'Content-Type':'application/json', 'apikey':CONFIG.SUPABASE_ANON_KEY, 'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+        headers: await chatFnHeaders(),
         body: JSON.stringify(payload)
       });
       if (!r.ok) {
