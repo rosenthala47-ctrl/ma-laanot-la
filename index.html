@@ -1515,7 +1515,10 @@ async function generateAnswers() {
     throw new Error(m);
   }
   const d = await r.json();
-  if (!Array.isArray(d.answers)) throw new Error('תשובה לא תקינה');
+  if (!Array.isArray(d.answers)) {
+    console.error('[reply-source] bad shape, full response:', JSON.stringify(d).slice(0, 500));
+    throw new Error('תשובה לא תקינה: ' + JSON.stringify(d).slice(0, 250));
+  }
   console.log('[reply-source] ✓ got ' + d.answers.length + ' replies from Claude (Anthropic API)');
   return d.answers;
 }
@@ -2900,7 +2903,10 @@ function openEmergencySheet() {
         throw new Error(m);
       }
       const d = await r.json();
-      if (!Array.isArray(d.answers)) throw new Error('תשובה לא תקינה');
+      if (!Array.isArray(d.answers)) {
+        console.error('[emergency] bad shape, full response:', JSON.stringify(d).slice(0, 500));
+        throw new Error('תשובה לא תקינה: ' + JSON.stringify(d).slice(0, 250));
+      }
       const labels = ['😂 מצחיק', '😎 בטוח', '😏 פלרטטני', '🌙 מסתורי', '🌊 צ\'יל'];
       $('#emResults').innerHTML = d.answers.map((a, i) => `
         <div class="reply-card">
