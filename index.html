@@ -1834,6 +1834,19 @@ function canUploadReplyImage() {
   return replyImagesRemainingToday() > 0;
 }
 
+// ---- model tiering: paid → Opus, free → Sonnet (+ 1 free Opus/day) ----
+function opusBonusKey() { return `mll2_opus_bonus_${state.user?.id||'a'}_${new Date().toISOString().slice(0,10)}`; }
+function getOpusBonusUsedToday() { return parseInt(localStorage.getItem(opusBonusKey())||'0', 10); }
+function bumpOpusBonus() { localStorage.setItem(opusBonusKey(), String(getOpusBonusUsedToday()+1)); }
+function freeOpusRemaining() { return Math.max(0, 1 - getOpusBonusUsedToday()); }
+// Decide which model to request for this generation. Returns { model, isFreeBonus }.
+function pickModel() {
+  const tier = getTier();
+  if (tier === 'plus' || tier === 'pro') return { model:'opus', isFreeBonus:false };
+  if (freeOpusRemaining() > 0) return { model:'opus', isFreeBonus:true };
+  return { model:'sonnet', isFreeBonus:false };
+}
+
 // ---------- streak ----------
 function streakKey() { return `mll2_streak_${state.user?.id||'a'}`; }
 function getStreak() {
@@ -1904,6 +1917,7 @@ async function generateAnswers() {
   const learned = getLearnedExamples(state.appMode, state.selectedStyle, 3);
   // === Coach context: recent coach analyses for this crush, as additional signal ===
   const coachContextForCrush = crush ? getRecentCoachContext(crush.id, 2) : null;
+  const mc = pickModel(); // { model, isFreeBonus }
   const base = {
     style: state.selectedStyle,
     situation: state.selectedSituation || 'auto',
@@ -1914,6 +1928,7 @@ async function generateAnswers() {
     learnedGood: learned.good, // [{input, output}] - the user's favorites
     learnedBad: learned.bad,   // [{input, output}] - to avoid
     coachContext: coachContextForCrush, // optional string from past coach analyses
+    model: mc.model, // 'opus' | 'sonnet' — server maps to the real model id
   };
   let payload;
   if (state.appMode === 'opener') {
@@ -1971,14 +1986,15 @@ async function generateAnswers() {
     throw new Error(m);
   }
   const d = await r.json();
+  if (mc.isFreeBonus) bumpOpusBonus(); // free user just spent their daily Opus generation
   // Check mode returns a different shape: { score, verdict, redFlags, strengths, rewrite }
   if (payload.mode === 'check') {
     if (typeof d.score !== 'number') throw new Error('תשובה לא תקינה');
-    console.log('[reply-source] ✓ got check result from Claude');
+    console.log('[reply-source] ✓ got check result from Claude (' + mc.model + ')');
     return { __check: true, ...d };
   }
   if (!Array.isArray(d.answers)) throw new Error('תשובה לא תקינה');
-  console.log('[reply-source] ✓ got ' + d.answers.length + ' replies from Claude (Anthropic API)');
+  console.log('[reply-source] ✓ got ' + d.answers.length + ' replies from Claude (' + mc.model + ')');
   return d.answers;
 }
 
@@ -4040,12 +4056,14 @@ async function handleCoachAnalyze() {
 
   try {
     const crush = state.crushes.find(c => c.id === state.selectedCrushId) || null;
+    const mc = pickModel();
     const payload = {
       mode: 'coach',
       text,
       crush, crushId: state.selectedCrushId,
       userGender: state.profile?.gender || null,
       userName: state.user?.user_metadata?.full_name || null,
+      model: mc.model,
     };
     const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
       method:'POST',
@@ -4058,6 +4076,7 @@ async function handleCoachAnalyze() {
       throw new Error(m);
     }
     const result = await r.json();
+    if (mc.isFreeBonus) bumpOpusBonus();
     clearInterval(stageInterval);
     state.coachAnalyzing = false;
     state.coachResult = result;
@@ -4103,10 +4122,12 @@ function openEmergencySheet() {
     btn.disabled = true; btn.textContent = '⚡ מייצר...';
     try {
       const crush = state.crushes.find(c => c.id === state.selectedCrushId) || null;
+      const mc = pickModel();
       const payload = {
         mode:'emergency', text, crush,
         userGender: state.profile?.gender || null,
         userName: state.user?.user_metadata?.full_name || null,
+        model: mc.model,
       };
       const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/chat-replies`, {
         method:'POST',
@@ -4120,6 +4141,7 @@ function openEmergencySheet() {
       }
       const d = await r.json();
       if (!Array.isArray(d.answers)) throw new Error('תשובה לא תקינה');
+      if (mc.isFreeBonus) bumpOpusBonus();
       const labels = ['😂 מצחיק', '😎 בטוח', '😏 פלרטטני', '🌙 מסתורי', '🌊 צ\'יל'];
       $('#emResults').innerHTML = d.answers.map((a, i) => `
         <div class="reply-card">
