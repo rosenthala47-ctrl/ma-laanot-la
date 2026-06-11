@@ -337,6 +337,14 @@ Deno.serve(async (req: Request) => {
     situation: payload.situation,
   }));
 
+  // Safety: this is a dating/flirting coach — never assist for a target under 18.
+  const crushAge = parseInt(String(payload?.crush?.age ?? ""), 10);
+  if (Number.isFinite(crushAge) && crushAge < 18) {
+    return json({
+      error: "לא ניתן להשתמש בפרופיל של מתחת לגיל 18. האפליקציה מיועדת לחיזור בין בגירים בלבד (18+).",
+    }, 400);
+  }
+
   try {
     if (mode === "coach") {
       if (!payload.text || payload.text.trim().length < 10) {
