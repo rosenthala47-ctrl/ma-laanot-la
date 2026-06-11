@@ -157,11 +157,14 @@ async function callAnthropic(opts: {
   }
 
   const data = await res.json();
+  console.log("Anthropic response stop_reason:", data.stop_reason, "content_types:", (data.content || []).map((b: any) => b.type).join(","));
+
   const toolBlock = (data.content || []).find((b: any) => b.type === "tool_use");
   if (!toolBlock || !toolBlock.input) {
-    console.error("No tool_use block in response:", JSON.stringify(data).slice(0, 500));
+    console.error("No tool_use block in response. Full response:", JSON.stringify(data).slice(0, 2000));
     throw new Error("המודל לא החזיר תשובה תקינה");
   }
+  console.log("Tool input received:", JSON.stringify(toolBlock.input).slice(0, 500));
   return toolBlock.input;
 }
 
@@ -227,6 +230,42 @@ const COACH_TOOL = {
   },
 };
 
+
+// Defensive: even though tool_choice should guarantee the schema, coerce
+// the tool input into { answers: string[] } no matter what shape we get.
+function coerceAnswers(input: any): { answers: string[] } {
+  const toStr = (v: any): string => {
+    if (typeof v === "string") return v;
+    if (v == null) return "";
+    if (typeof v === "object") {
+      if (typeof v.text === "string") return v.text;
+      if (typeof v.message === "string") return v.message;
+      if (typeof v.content === "string") return v.content;
+      return JSON.stringify(v);
+    }
+    return String(v);
+  };
+
+  if (Array.isArray(input?.answers)) {
+    return { answers: input.answers.map(toStr).filter((s: string) => s.length > 0) };
+  }
+  if (Array.isArray(input)) {
+    return { answers: input.map(toStr).filter((s: string) => s.length > 0) };
+  }
+  if (input && typeof input === "object") {
+    // Try common alt keys
+    for (const key of ["replies", "options", "messages", "תשובות"]) {
+      if (Array.isArray(input[key])) {
+        return { answers: input[key].map(toStr).filter((s: string) => s.length > 0) };
+      }
+    }
+    // Fallback: collect string values from the object
+    const vals = Object.values(input).map(toStr).filter((s) => s.length > 0);
+    if (vals.length >= 1) return { answers: vals };
+  }
+  console.error("coerceAnswers couldn't extract from:", JSON.stringify(input).slice(0, 500));
+  return { answers: [] };
+}
 
 // ---- handler -----------------------------------------------------------------
 Deno.serve(async (req: Request) => {
@@ -294,7 +333,7 @@ Deno.serve(async (req: Request) => {
         maxTokens: 1200,
         tool: ANSWERS_TOOL,
       });
-      return json(result, 200);
+      return json(coerceAnswers(result), 200);
     }
 
     // text / opener / phrase / emergency — or anything else with a text payload
@@ -310,7 +349,7 @@ Deno.serve(async (req: Request) => {
         maxTokens: 1200,
         tool: ANSWERS_TOOL,
       });
-      return json(result, 200);
+      return json(coerceAnswers(result), 200);
     }
 
     return json({ error: `מצב לא נתמך: ${mode || "(ריק)"}` }, 400);
