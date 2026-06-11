@@ -122,6 +122,20 @@ function buildCoachUserPrompt(p: any): string {
 החזר את הניתוח באמצעות הכלי return_coach_analysis עם כל השדות הנדרשים: רמת עניין 0-100, טון, נימוק לעניין, סיגנלים, המלצת תזמון, 5 תשובות בסגנונות שונים, וטיפים אישיים.`;
 }
 
+function buildCheckUserPrompt(p: any): string {
+  const ctx = crushContext(p.crush);
+  const hasImage = !!p.imageBase64;
+  const draft = (p.text || "").trim();
+  const intro = hasImage
+    ? `מצורף צילום מסך${draft ? " וגם טקסט" : ""}. המשתמש שוקל לשלוח את ההודעה הזו (או את ההודעה האחרונה שכתב בצילום).`
+    : `המשתמש שוקל לשלוח את ההודעה הבאה.`;
+  return `אתה מאמן דייטים ביקורתי וישיר. ${intro}${ctx}
+
+${draft ? `ההודעה שהוא רוצה לשלוח:\n"${draft}"\n\n` : ""}המשימה: תבדוק את ההודעה ותגיד אם כדאי לשלוח אותה. תן ציון 0-10 (10 = מושלם לשליחה), פסיקה ברורה, דגלים אדומים אם יש (נואשות, קרינג', יבש מדי, ארוך מדי, מתאמץ מדי), מה כן עובד, וניסוח חלופי טוב יותר.
+
+החזר את התוצאה באמצעות הכלי return_message_check.`;
+}
+
 // ---- Anthropic call ----------------------------------------------------------
 // Uses tool_use with tool_choice to force structured JSON output.
 // This is more reliable than asking for JSON in the prompt — Claude is forced
@@ -230,6 +244,30 @@ const COACH_TOOL = {
   },
 };
 
+const CHECK_TOOL = {
+  name: "return_message_check",
+  description: "בדיקה והערכה של הודעה שהמשתמש עומד לשלוח, עם ציון ושיפורים.",
+  input_schema: {
+    type: "object",
+    properties: {
+      score: { type: "integer", description: "ציון 0-10 לכמה ההודעה טובה לשליחה", minimum: 0, maximum: 10 },
+      verdict: { type: "string", description: "משפט פסיקה קצר — לשלוח / לשפץ / לא לשלוח, וכמה מילים למה" },
+      redFlags: {
+        type: "array",
+        description: "0-4 בעיות / דגלים אדומים בהודעה (אם אין — מערך ריק)",
+        items: { type: "string" },
+      },
+      strengths: {
+        type: "array",
+        description: "0-3 דברים שעובדים טוב בהודעה",
+        items: { type: "string" },
+      },
+      rewrite: { type: "string", description: "ניסוח חלופי טוב יותר של ההודעה, בעברית טבעית" },
+    },
+    required: ["score", "verdict", "redFlags", "strengths", "rewrite"],
+  },
+};
+
 
 // Defensive: even though tool_choice should guarantee the schema, coerce
 // the tool input into { answers: string[] } no matter what shape we get.
@@ -309,6 +347,34 @@ Deno.serve(async (req: Request) => {
         userContent: buildCoachUserPrompt(payload),
         maxTokens: 2000,
         tool: COACH_TOOL,
+      });
+      return json(result, 200);
+    }
+
+    if (mode === "check") {
+      const hasText = !!(payload.text && payload.text.trim());
+      if (!hasText && !payload.imageBase64) {
+        return json({ error: "הדבק טקסט או צרף תמונה לבדיקה" }, 400);
+      }
+      // Check mode accepts text, an image, or both.
+      const userContent: any = payload.imageBase64
+        ? [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: payload.imageMediaType || "image/jpeg",
+                data: payload.imageBase64,
+              },
+            },
+            { type: "text", text: buildCheckUserPrompt(payload) },
+          ]
+        : buildCheckUserPrompt(payload);
+      const result = await callAnthropic({
+        system: baseSystemPrompt(),
+        userContent,
+        maxTokens: 1500,
+        tool: CHECK_TOOL,
       });
       return json(result, 200);
     }
