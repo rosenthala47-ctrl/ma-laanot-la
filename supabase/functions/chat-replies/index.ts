@@ -11,9 +11,10 @@
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
-// Default to the most capable model. To lower cost, switch to
-// "claude-sonnet-4-6" (≈5× cheaper) or "claude-haiku-4-5" (cheapest).
-const MODEL = "claude-sonnet-4-6";
+// The model is chosen per-request via pickModel(): paid tiers (and the free
+// daily bonus) request "opus" → claude-opus-4-8; everyone else → sonnet.
+const OPUS_MODEL = "claude-opus-4-8";
+const SONNET_MODEL = "claude-sonnet-4-6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -136,16 +137,35 @@ ${draft ? `ההודעה שהוא רוצה לשלוח:\n"${draft}"\n\n` : ""}המ
 החזר את התוצאה באמצעות הכלי return_message_check.`;
 }
 
+// Thrown when the model declines via the cannot_help tool. The handler turns
+// this into a clean 422 message instead of leaking a refusal into the answers.
+class RefusalError extends Error {}
+
+// The model can always pick this tool to decline cleanly instead of producing
+// a low-quality / refusal-flavored answer inside the real tool.
+const CANNOT_HELP_TOOL = {
+  name: "cannot_help",
+  description:
+    "השתמש בכלי הזה רק אם באמת אי אפשר לעזור בבקשה (למשל תוכן לא חוקי, או חיזור אחרי קטין). אל תשתמש בו בשביל בקשות לגיטימיות של חיזור/פלרטוט בין בגירים.",
+  input_schema: {
+    type: "object",
+    properties: {
+      reason: { type: "string", description: "סיבה קצרה בעברית למה אי אפשר לעזור" },
+    },
+    required: ["reason"],
+  },
+};
+
 // ---- Anthropic call ----------------------------------------------------------
 // Uses tool_use with tool_choice to force structured JSON output.
-// This is more reliable than asking for JSON in the prompt — Claude is forced
-// to populate the tool's input schema exactly.
+// Returns the chosen tool_use block { name, input }.
 async function callAnthropic(opts: {
+  model: string;
   system: string;
   userContent: any;
   maxTokens: number;
-  tool: { name: string; description: string; input_schema: any };
-}): Promise<any> {
+  tools: any[];
+}): Promise<{ name: string; input: any }> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -154,12 +174,14 @@ async function callAnthropic(opts: {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: opts.model,
       max_tokens: opts.maxTokens,
       system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: opts.userContent }],
-      tools: [opts.tool],
-      tool_choice: { type: "tool", name: opts.tool.name },
+      tools: opts.tools,
+      // "any" forces the model to call SOME tool (real one or cannot_help),
+      // so we always get structured output — never free-form prose.
+      tool_choice: { type: "any" },
     }),
   });
 
@@ -171,15 +193,44 @@ async function callAnthropic(opts: {
   }
 
   const data = await res.json();
-  console.log("Anthropic response stop_reason:", data.stop_reason, "content_types:", (data.content || []).map((b: any) => b.type).join(","));
+  console.log("Anthropic response model:", opts.model, "stop_reason:", data.stop_reason);
 
   const toolBlock = (data.content || []).find((b: any) => b.type === "tool_use");
   if (!toolBlock || !toolBlock.input) {
     console.error("No tool_use block in response. Full response:", JSON.stringify(data).slice(0, 2000));
     throw new Error("המודל לא החזיר תשובה תקינה");
   }
-  console.log("Tool input received:", JSON.stringify(toolBlock.input).slice(0, 500));
-  return toolBlock.input;
+  return { name: toolBlock.name, input: toolBlock.input };
+}
+
+// Runs a single content tool alongside the cannot_help escape hatch.
+// Throws RefusalError if the model declines.
+async function runTool(opts: {
+  model: string;
+  system: string;
+  userContent: any;
+  maxTokens: number;
+  tool: any;
+}): Promise<any> {
+  const { name, input } = await callAnthropic({
+    model: opts.model,
+    system: opts.system,
+    userContent: opts.userContent,
+    maxTokens: opts.maxTokens,
+    tools: [opts.tool, CANNOT_HELP_TOOL],
+  });
+  if (name === CANNOT_HELP_TOOL.name) {
+    console.log("Model declined:", JSON.stringify(input).slice(0, 300));
+    throw new RefusalError(input?.reason || "המודל לא יכול לעזור בבקשה הזו");
+  }
+  return input;
+}
+
+// Map the tier hint the frontend sends to an actual model id.
+function pickModel(payload: any): string {
+  const want = String(payload?.model || "").toLowerCase();
+  if (want === "opus" || want.includes("opus")) return OPUS_MODEL;
+  return SONNET_MODEL;
 }
 
 // ---- Tool schemas ------------------------------------------------------------
@@ -345,12 +396,16 @@ Deno.serve(async (req: Request) => {
     }, 400);
   }
 
+  const model = pickModel(payload);
+  console.log("using model:", model, "(requested:", payload?.model || "default", ")");
+
   try {
     if (mode === "coach") {
       if (!payload.text || payload.text.trim().length < 10) {
         return json({ error: "הדבק שיחה ארוכה יותר" }, 400);
       }
-      const result = await callAnthropic({
+      const result = await runTool({
+        model,
         system: baseSystemPrompt(),
         userContent: buildCoachUserPrompt(payload),
         maxTokens: 2000,
@@ -378,7 +433,8 @@ Deno.serve(async (req: Request) => {
             { type: "text", text: buildCheckUserPrompt(payload) },
           ]
         : buildCheckUserPrompt(payload);
-      const result = await callAnthropic({
+      const result = await runTool({
+        model,
         system: baseSystemPrompt(),
         userContent,
         maxTokens: 1500,
@@ -391,7 +447,8 @@ Deno.serve(async (req: Request) => {
       if (!payload.imageBase64) {
         return json({ error: "לא צורפה תמונה" }, 400);
       }
-      const result = await callAnthropic({
+      const result = await runTool({
+        model,
         system: baseSystemPrompt(),
         userContent: [
           {
@@ -417,7 +474,8 @@ Deno.serve(async (req: Request) => {
       : payload.text ? "text" : payload.intent ? "phrase" : "";
 
     if (effectiveMode) {
-      const result = await callAnthropic({
+      const result = await runTool({
+        model,
         system: baseSystemPrompt(),
         userContent: buildReplyUserPrompt({ ...payload, mode: effectiveMode }),
         maxTokens: 1200,
@@ -428,6 +486,11 @@ Deno.serve(async (req: Request) => {
 
     return json({ error: `מצב לא נתמך: ${mode || "(ריק)"}` }, 400);
   } catch (e) {
+    // A clean refusal — show the user a friendly message, not a 500.
+    if (e instanceof RefusalError) {
+      console.log("returning refusal 422:", e.message);
+      return json({ error: e.message || "לא ניתן לעזור בבקשה הזו" }, 422);
+    }
     console.error("chat-replies error:", e);
     return json({ error: (e as Error).message || "שגיאת שרת" }, 500);
   }
