@@ -1202,6 +1202,7 @@ select.input {
 .value-prop:nth-child(2) { animation-delay:0.2s; }
 .value-prop:nth-child(3) { animation-delay:0.3s; }
 .value-prop:nth-child(4) { animation-delay:0.4s; }
+.value-prop:nth-child(5) { animation-delay:0.5s; }
 @keyframes slideIn {
   from { opacity:0; transform:translateY(20px); }
   to { opacity:1; transform:translateY(0); }
@@ -1672,6 +1673,13 @@ function renderPaywallOnboarding() {
     </div>
 
     <div class="value-prop-list">
+      <div class="value-prop">
+        <div class="vp-icon">🧠</div>
+        <div class="vp-info">
+          <div class="vp-title">המנוע החזק ביותר — אופוס</div>
+          <div class="vp-desc">בחינם מקבלים אופוס אחד ביום; במנויים בתשלום אופוס בכל תשובה — התשובות הכי חכמות והכי טבעיות.</div>
+        </div>
+      </div>
       <div class="value-prop">
         <div class="vp-icon">🧠</div>
         <div class="vp-info">
@@ -2242,6 +2250,7 @@ function renderPremium() {
       <div class="pw-price"><span class="amount">₪0</span><span class="per">לתמיד</span></div>
       <ul class="pw-feats">
         <li><span class="check">✓</span>8 תשובות AI ליום</li>
+        <li><span class="check">✓</span><span class="highlight">🧠 אופוס אחד ביום</span> (המנוע החזק ביותר)</li>
         <li><span class="check">✓</span>3 סגנונות בסיסיים</li>
         <li><span class="check">✓</span>פרופיל קראש אחד</li>
         <li class="off"><span class="check">×</span>בלי "פתיחת שיחה" / "עזרת ניסוח"</li>
@@ -2264,6 +2273,7 @@ function renderPremium() {
       <div class="pw-trial">🎁 7 ימי ניסיון חינם · בלי התחייבות</div>
       <ul class="pw-feats">
         <li><span class="check">✓</span><span class="highlight">80 תשובות ביום</span> (פי 10 מחינם)</li>
+        <li><span class="check">✓</span><span class="highlight">🧠 אופוס — המנוע החזק</span> בכל תשובה</li>
         <li><span class="check">✓</span>כל 8 סגנונות התשובה פתוחים</li>
         <li><span class="check">✓</span>פתיחות שיחה + עזרת ניסוח</li>
         <li><span class="check">✓</span>🧠 AI Chat Coach — ניתוח שיחה</li>
@@ -2289,6 +2299,7 @@ function renderPremium() {
       <div class="pw-trial">🎁 7 ימי ניסיון חינם · ביטול בכל רגע</div>
       <ul class="pw-feats">
         <li><span class="check">✓</span><span class="highlight">כל מה ש-Plus נותן, ועוד:</span></li>
+        <li><span class="check">✓</span><span class="highlight">🧠 אופוס — המנוע החזק</span> בכל תשובה</li>
         <li><span class="check">✓</span>♾️ תשובות בלי הגבלה</li>
         <li><span class="check">✓</span>📸 העלאת צילומי מסך לניתוח</li>
         <li><span class="check">✓</span>🔬 ניתוח עמוק של מערכת היחסים</li>
