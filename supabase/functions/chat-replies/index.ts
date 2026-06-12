@@ -62,6 +62,25 @@ const SITUATION_LABELS: Record<string, string> = {
   confident: "בטוח בעצמו",
 };
 
+// ---- safety: sexual/explicit content detection --------------------------------
+const SEXUAL_CONTENT_KEYWORDS = [
+  // Hebrew
+  "סקס", "מין", "להזדיין", "זין", "כוס", "חזה", "ציצים", "תחת", "עירום", "להתפשט",
+  "חרמן", "חרמנית", "סרטי סקס", "תוכן מיני", "סקסטינג", "סקסי בטירוף", "להגמיר",
+  "לדפוק", "אונס", "נודס",
+  // English
+  "sex", "sexual", "nude", "naked", "porn", "horny", "nsfw", "explicit",
+  "boobs", "dick", "pussy", "sexting",
+];
+
+function isSexualContentRequest(payload: any): boolean {
+  const fields = [payload?.text, payload?.intent, payload?.context, payload?.style, payload?.situation]
+    .filter((v) => typeof v === "string")
+    .join(" ")
+    .toLowerCase();
+  return SEXUAL_CONTENT_KEYWORDS.some((kw) => fields.includes(kw.toLowerCase()));
+}
+
 // ---- prompt building ----------------------------------------------------------
 function crushContext(crush: any): string {
   if (!crush || typeof crush !== "object") return "";
@@ -458,11 +477,12 @@ Deno.serve(async (req: Request) => {
     situation: payload.situation,
   }));
 
-  // Safety: this is a dating/flirting coach — never assist for a target under 18.
+  // Safety: never generate sexual/explicit content involving a target under 18.
+  // General (non-sexual) dating/conversation coaching is still allowed.
   const crushAge = parseInt(String(payload?.crush?.age ?? ""), 10);
-  if (Number.isFinite(crushAge) && crushAge < 18) {
+  if (Number.isFinite(crushAge) && crushAge < 18 && isSexualContentRequest(payload)) {
     return json({
-      error: "לא ניתן להשתמש בפרופיל של מתחת לגיל 18. האפליקציה מיועדת לחיזור בין בגירים בלבד (18+).",
+      error: "לא ניתן לסייע בתוכן מיני הנוגע לפרופיל של מתחת לגיל 18.",
     }, 400);
   }
 
