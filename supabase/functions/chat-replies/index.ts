@@ -132,12 +132,16 @@ function buildImageUserPrompt(p: any): string {
   const style = STYLE_LABELS[p.style] || "טבעי";
   const sit = SITUATION_LABELS[p.situation] || "זהה מההקשר";
   const ctx = crushContext(p.crush);
-  return `מצורף צילום מסך של שיחה. קרא את השיחה, הבן מי כתב מה (ההודעות מצד ימין/הכחולות הן בדרך כלל של המשתמש), והתמקד בהודעה האחרונה שהוא צריך לענות עליה.
+  return `מצורפת תמונה. לפני כל דבר, בדוק האם זו תמונה של צילום מסך של שיחת צ'אט (וואטסאפ, אינסטגרם, SMS וכו') עם הודעות.
+
+אם זו **לא** תמונה של שיחת צ'אט (למשל: תמונה רגילה, חפץ, נוף, סלפי, מסך לא קשור וכו') — קבע isChatScreenshot=false והחזר מערך answers ריק. אל תמציא שיחה שלא קיימת ואל תתייחס לתוכן התמונה כאילו הוא הודעות.
+
+אם זו תמונה של שיחת צ'אט — קבע isChatScreenshot=true, קרא את השיחה, הבן מי כתב מה (ההודעות מצד ימין/הכחולות הן בדרך כלל של המשתמש), והתמקד בהודעה האחרונה שהוא צריך לענות עליה.
 
 סגנון מבוקש: ${style}
 סיטואציה: ${sit}${ctx}
 
-החזר 5 תשובות אפשריות שהמשתמש יכול לשלוח עכשיו, באמצעות הכלי return_answers.`;
+אם isChatScreenshot=true, החזר 5 תשובות אפשריות שהמשתמש יכול לשלוח עכשיו, באמצעות הכלי return_image_answers.`;
 }
 
 function buildCoachUserPrompt(p: any): string {
@@ -338,6 +342,27 @@ const ANSWERS_TOOL = {
       },
     },
     required: ["answers"],
+  },
+};
+
+const IMAGE_ANSWERS_TOOL = {
+  name: "return_image_answers",
+  description: "קודם קובע אם התמונה היא צילום מסך של שיחת צ'אט, ואם כן — מחזיר 5 תשובות אפשריות.",
+  input_schema: {
+    type: "object",
+    properties: {
+      isChatScreenshot: {
+        type: "boolean",
+        description: "true אם התמונה היא צילום מסך של שיחת צ'אט עם הודעות, false אם זו תמונה אחרת",
+      },
+      answers: {
+        type: "array",
+        description: "אם isChatScreenshot=true: מערך של 5 תשובות בעברית. אם false: מערך ריק.",
+        items: { type: "string" },
+        maxItems: 5,
+      },
+    },
+    required: ["isChatScreenshot", "answers"],
   },
 };
 
@@ -552,8 +577,13 @@ Deno.serve(async (req: Request) => {
           { type: "text", text: buildImageUserPrompt(payload) },
         ],
         maxTokens: 1200,
-        tool: ANSWERS_TOOL,
+        tool: IMAGE_ANSWERS_TOOL,
       });
+      if (result?.isChatScreenshot === false) {
+        return json({
+          error: "התמונה הזו לא נראית כמו צילום מסך של שיחה. נסה לצלם את הצ'אט שאתה רוצה לענות בו.",
+        }, 422);
+      }
       return json(coerceAnswers(result), 200);
     }
 
